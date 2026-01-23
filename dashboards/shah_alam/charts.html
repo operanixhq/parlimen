@@ -1,1 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Statistik Aduan</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{font-family:Arial;padding:20px;}
+canvas{max-width:600px;}
+</style>
+</head>
+<body>
+
+<h2>Statistik Aduan Shah Alam</h2>
+
+<canvas id="pieChart"></canvas>
+<br><br>
+<canvas id="barChart"></canvas>
+
+<script>
+const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";
+
+fetch(csvUrl)
+.then(r=>r.text())
+.then(text=>{
+  const rows = text.split('\n').slice(1);
+
+  const kategoriCount = {};
+  const statusCount = {};
+
+  rows.forEach(row=>{
+    const cols = row.split(',');
+    const kategori = cols[3];
+    const status = cols[5];
+
+    if(kategori) kategoriCount[kategori] = (kategoriCount[kategori]||0)+1;
+    if(status) statusCount[status] = (statusCount[status]||0)+1;
+  });
+
+  new Chart(document.getElementById('pieChart'),{
+    type:'pie',
+    data:{
+      labels:Object.keys(kategoriCount),
+      datasets:[{data:Object.values(kategoriCount)}]
+    }
+  });
+
+  new Chart(document.getElementById('barChart'),{
+    type:'bar',
+    data:{
+      labels:Object.keys(statusCount),
+      datasets:[{data:Object.values(statusCount)}]
+    }
+  });
+
+});
+</script>
+
+</body>
+</html>
 
