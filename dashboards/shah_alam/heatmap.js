@@ -25,10 +25,10 @@ fetch(csvUrl)
     const cols = row.split(',');
 
     const case_id = cols[0];
-    const lat = parseFloat(cols[5]);
-    const lng = parseFloat(cols[6]);
-    const kategori = cols[2];
-    const ringkasan = cols[3];
+    const lat = parseFloat(cols[6]);
+    const lng = parseFloat(cols[7]);
+    const kategori = cols[3];
+    const ringkasan = cols[4];
 
     if(!isNaN(lat) && !isNaN(lng)){
       const marker = L.circleMarker([lat,lng],{
