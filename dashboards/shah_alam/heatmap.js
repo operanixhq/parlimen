@@ -1,76 +1,61 @@
-// Init map
-const map = L.map('map').setView([3.0738, 101.5183], 12);
+const map = L.map('map').setView([3.0738, 101.5183], 11);
 
-// Basemap
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  maxZoom: 19
+  maxZoom:18
 }).addTo(map);
 
-// Load parlimen boundary GeoJSON
+// load boundary
 fetch('../../P108_shah_alam.geojson')
-.then(r => r.json())
-.then(geo => {
-  L.geoJSON(geo,{
-    style:{
-      color:'#0055ff',
-      weight:2,
-      fillOpacity:0.05
-    }
+.then(r=>r.json())
+.then(data=>{
+  L.geoJSON(data,{
+    style:{color:'#0055ff',weight:2,fillOpacity:0.05}
   }).addTo(map);
 });
 
-// Heatmap plugin array
-const heatPoints = [];
+// CSV publish link kau
+const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv';
 
-// CSV Google Sheet
-const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-iNN5TGHSaSlasflrE880zYmVBV2CjYbR_Wg8Nz5ERgsYlOp1sAJIBuzax8MFBSWr5frkDUQL7BL-/pub?output=csv";
+Papa.parse(csvUrl,{
+  download:true,
+  header:true,
+  complete: function(results){
 
-fetch(csvUrl)
-.then(r => r.text())
-.then(text => {
+    let heatPoints = [];
 
-  const rows = text.split('\n').slice(1); // buang header
+    results.data.forEach(row => {
 
-  rows.forEach(row => {
+      const case_id   = row.case_id;
+      const kategori  = row.kategori_aduan;
+      const ringkasan = row.ringkasan_aduan;
+      const lat = parseFloat(row.lat);
+      const lng = parseFloat(row.lng);
 
-    if(!row.trim()) return;
+      if(!isNaN(lat) && !isNaN(lng)){
 
-    const cols = row.split(',');
+        heatPoints.push([lat,lng,1]);
 
-    const case_id   = cols[0];
-    const kategori  = cols[3];
-    const ringkasan = cols[4];
-    const lat = parseFloat(cols[6]);
-    const lng = parseFloat(cols[7]);
+        const marker = L.circleMarker([lat,lng],{
+          radius:6,
+          color:'#ff3333',
+          fillOpacity:0.9
+        }).addTo(map);
 
-    if(isNaN(lat) || isNaN(lng)) return;
+        marker.bindPopup(`
+          <b>${case_id}</b><br>
+          ${kategori}<br>
+          ${ringkasan}<br><br>
+          <a href="details.html?case_id=${case_id}" target="_blank">
+          Lihat detail kes
+          </a>
+        `);
+      }
+    });
 
-    // push heat point
-    heatPoints.push([lat, lng, 1]);
-
-    // create marker pin
-    const marker = L.circleMarker([lat,lng],{
-      radius:6,
-      color:'#ff3b3b',
-      fillOpacity:0.9
+    L.heatLayer(heatPoints,{
+      radius:25,
+      blur:15,
+      maxZoom:17
     }).addTo(map);
-
-    // popup clickable link to details page
-    marker.bindPopup(`
-      <b>${case_id}</b><br>
-      ${kategori}<br>
-      <a href="details.html?case_id=${encodeURIComponent(case_id)}" target="_blank">
-        Lihat Detail
-      </a>
-    `);
-
-  });
-
-  // add heatmap layer after loop
-  L.heatLayer(heatPoints,{
-    radius:25,
-    blur:15,
-    maxZoom:17
-  }).addTo(map);
-
+  }
 });
