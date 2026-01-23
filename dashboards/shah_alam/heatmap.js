@@ -1,35 +1,36 @@
-const map = L.map('map').setView([3.0738, 101.5183], 11);
+const map = L.map('map').setView([3.0738, 101.5183], 12);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:18
 }).addTo(map);
 
-// load boundary
+// boundary
 fetch('../../P108_shah_alam.geojson')
 .then(r=>r.json())
 .then(data=>{
   L.geoJSON(data,{
-    style:{color:'#0055ff',weight:2,fillOpacity:0.05}
+    style:{color:'#0055ff',weight:2,fillOpacity:0}
   }).addTo(map);
 });
 
-// CSV publish link kau
-const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv';
+// CSV
+const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv"
 
 Papa.parse(csvUrl,{
   download:true,
-  header:true,
+  skipEmptyLines:true,
   complete: function(results){
 
+    const rows = results.data.slice(1);
     let heatPoints = [];
 
-    results.data.forEach(row => {
+    rows.forEach(cols => {
 
-      const case_id   = row.case_id;
-      const kategori  = row.kategori_aduan;
-      const ringkasan = row.ringkasan_aduan;
-      const lat = parseFloat(row.lat);
-      const lng = parseFloat(row.lng);
+      const case_id = cols[0];
+      const kategori = cols[3];
+      const ringkasan = cols[4];
+      const lat = parseFloat(cols[6]);
+      const lng = parseFloat(cols[7]);
 
       if(!isNaN(lat) && !isNaN(lng)){
 
@@ -53,9 +54,10 @@ Papa.parse(csvUrl,{
     });
 
     L.heatLayer(heatPoints,{
-      radius:25,
-      blur:15,
-      maxZoom:17
+      radius:45,
+      blur:30,
+      maxZoom:17,
+      minOpacity:0.6
     }).addTo(map);
   }
 });
