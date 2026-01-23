@@ -68,8 +68,8 @@ async function loadCSVPoints() {
   console.log("POINTS COUNT:", points.length);
 
   L.heatLayer(points, {
-    radius: 35,
-    blur: 25,
+    radius: 45,
+    blur: 30,
     maxZoom: 17
   }).addTo(map);
 }
