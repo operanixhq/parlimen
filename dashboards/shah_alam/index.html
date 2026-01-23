@@ -85,13 +85,14 @@ async function loadCases() {
     const cols = r.split(",")
 
     const case_id = cols[0]
-    const category = cols[2]
+    const category = cols[3]
+    const summary = cols[4]
     const lat = parseFloat(cols[6])
     const lng = parseFloat(cols[7])
 
     if (!isNaN(lat) && !isNaN(lng)) {
       heatPoints.push([lat, lng, 1])
-      casePoints.push({case_id, category, lat, lng})
+      casePoints.push({category, summary, lat, lng})
     }
   })
 
