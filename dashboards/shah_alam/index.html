@@ -119,9 +119,33 @@ function addPins(casePoints) {
 
     const marker = L.marker([c.lat, c.lng], {icon}).addTo(map)
 
-    marker.on('click', () => {
-      window.open("details.html?case_id=" + encodeURIComponent(c.case_id), "_blank")
+    function addPins(casePoints) {
+  casePoints.forEach(c => {
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="pin"></div>',
+      iconSize: [16,16],
+      iconAnchor: [8,8]
     })
+
+    const marker = L.marker([c.lat, c.lng], {icon}).addTo(map)
+
+    // Popup content
+    const popupHtml = `
+      <div style="font-size:14px;line-height:1.4">
+        <strong>Case ID:</strong> ${c.case_id}<br>
+        <strong>Kategori:</strong> ${c.category}<br><br>
+        <a href="details.html?case_id=${encodeURIComponent(c.case_id)}"
+           target="_blank"
+           style="color:#0066ff;text-decoration:none;font-weight:bold">
+           Lihat detail →
+        </a>
+      </div>
+    `
+
+    marker.bindPopup(popupHtml)
+  })
+}
   })
 }
 
@@ -134,6 +158,8 @@ async function init() {
 }
 
 init()
+
+map.on('click', () => map.closePopup())
 </script>
 
 </body>
