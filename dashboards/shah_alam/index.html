@@ -123,8 +123,8 @@ function addPins(casePoints) {
 
     const popupHtml = `
       <div style="font-size:14px;line-height:1.4">
-        <strong>Case ID:</strong> ${c.case_id}<br>
-        <strong>Kategori:</strong> ${c.category}<br><br>
+        <strong>Kategori:</strong> ${c.category}<br>
+        <strong>Ringkasan Aduan:</strong> ${c.summary}<br><br>
         <a href="details.html?case_id=${encodeURIComponent(c.case_id)}"
            target="_blank"
            style="color:#0066ff;text-decoration:none;font-weight:bold">
