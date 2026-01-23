@@ -1,57 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Dashboard Aduan Shah Alam</title>
+  <title>Dashboard Aduan Shah Alam</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Leaflet CSS -->
+  <link 
+    rel="stylesheet" 
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
 
-<!-- Leaflet core -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-
-<!-- Basic styling -->
-<style>
-  body {
-    margin:0;
-    font-family: Arial, sans-serif;
-  }
-
-  header {
-    background:#111;
-    color:white;
-    padding:10px 20px;
-    font-size:16px;
-  }
-
-  #map {
-    height: 90vh;
-    width: 100%;
-  }
-
-  .toplink {
-    color:#00c3ff;
-    text-decoration:none;
-    font-weight:bold;
-  }
-</style>
+  <style>
+    body { margin:0; font-family:Arial, sans-serif; }
+    #map { width:100%; height:100vh; }
+    .topbar {
+      position:absolute;
+      z-index:1000;
+      background:#111;
+      color:#fff;
+      padding:8px 15px;
+      font-size:14px;
+    }
+    .topbar a {
+      color:#4da3ff;
+      text-decoration:none;
+      margin-left:10px;
+    }
+  </style>
 </head>
 
 <body>
 
-<header>
-  Dashboard Aduan Shah Alam 
-  | <a class="toplink" href="charts.html" target="_blank">Lihat Statistik</a>
-</header>
+<div class="topbar">
+  Dashboard Aduan Shah Alam
+  <a href="charts.html">Lihat Statistik</a>
+</div>
 
 <div id="map"></div>
 
-<!-- Leaflet core -->
+<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<!-- Leaflet heat plugin -->
+<!-- Leaflet Heat -->
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
-<!-- Main map logic -->
+<!-- PapaParse CSV Parser -->
+<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+
+<!-- Main Heatmap Script -->
 <script src="heatmap.js"></script>
 
 </body>
