@@ -71,7 +71,7 @@ async function loadBoundary() {
   map.fitBounds(boundary.getBounds())
 }
 
-// Load CSV & points
+// Load CSV & extract points
 async function loadCases() {
   const res = await fetch(CSV_URL)
   const text = await res.text()
@@ -107,9 +107,10 @@ function addHeat(points) {
   }).addTo(map)
 }
 
-// Add clickable pins
+// Add clickable pins with popup
 function addPins(casePoints) {
   casePoints.forEach(c => {
+
     const icon = L.divIcon({
       className: '',
       html: '<div class="pin"></div>',
@@ -119,18 +120,6 @@ function addPins(casePoints) {
 
     const marker = L.marker([c.lat, c.lng], {icon}).addTo(map)
 
-    function addPins(casePoints) {
-  casePoints.forEach(c => {
-    const icon = L.divIcon({
-      className: '',
-      html: '<div class="pin"></div>',
-      iconSize: [16,16],
-      iconAnchor: [8,8]
-    })
-
-    const marker = L.marker([c.lat, c.lng], {icon}).addTo(map)
-
-    // Popup content
     const popupHtml = `
       <div style="font-size:14px;line-height:1.4">
         <strong>Case ID:</strong> ${c.case_id}<br>
@@ -146,10 +135,8 @@ function addPins(casePoints) {
     marker.bindPopup(popupHtml)
   })
 }
-  })
-}
 
-// Init all
+// Init everything
 async function init() {
   await loadBoundary()
   const data = await loadCases()
@@ -159,8 +146,9 @@ async function init() {
 
 init()
 
+// Close popup when clicking map
 map.on('click', () => map.closePopup())
-</script>
 
+</script>
 </body>
 </html>
