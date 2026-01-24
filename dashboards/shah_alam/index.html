@@ -23,7 +23,6 @@
       box-shadow:0 2px 8px rgba(0,0,0,0.25);
       z-index:999;
       font-size:13px;
-      line-height:1.6;
       min-width:220px;
     }
 
@@ -61,14 +60,6 @@
 <body>
 
 <div id="filters">
-
-  <label>
-    <input type="checkbox" id="showAll" checked>
-    Lihat semua kes
-  </label>
-
-  <hr>
-
   Tarikh mula:
   <input type="date" id="startDate">
 
@@ -79,10 +70,6 @@
   <select id="categoryFilter">
     <option value="">Semua kategori</option>
   </select>
-
-  <button onclick="applyFilter()">Tapis</button>
-  <button onclick="resetFilter()">Reset</button>
-
 </div>
 
 <div id="map"></div>
@@ -101,14 +88,14 @@ map.createPane("pinPane")
 map.getPane("pinPane").style.zIndex = 400
 
 let heatLayer
-let pinLayerGroup = L.layerGroup().addTo(map)
+let pinLayer = L.layerGroup().addTo(map)
 let allCases = []
 
 
-// CSV parser (handles comma inside text)
+// Robust CSV parser
 function parseCSV(text){
   const rows=[]
-  let row=[],col="",quote=false
+  let row=[], col="", quote=false
   for(let c of text){
     if(c=='"') quote=!quote
     else if(c=="," && !quote){ row.push(col); col="" }
@@ -120,16 +107,18 @@ function parseCSV(text){
 }
 
 
+// Load boundary
 async function loadBoundary(){
   const res = await fetch(GEOJSON_URL)
-  const geojson = await res.json()
-  const layer = L.geoJSON(geojson,{
+  const geo = await res.json()
+  const layer = L.geoJSON(geo,{
     style:{color:"#0033aa",weight:3,fillOpacity:0}
   }).addTo(map)
   map.fitBounds(layer.getBounds())
 }
 
 
+// Load CSV cases
 async function loadCases(){
   const res = await fetch(CSV_URL)
   const text = await res.text()
@@ -140,7 +129,7 @@ async function loadCases(){
 
   table.forEach(cols=>{
     const case_id = cols[0]
-    const date = cols[1]           // format yyyy-mm-dd
+    const date = cols[1]       // yyyy-mm-dd
     const category = cols[3]
     const summary = cols[4]
     const lat = parseFloat(cols[6])
@@ -155,9 +144,10 @@ async function loadCases(){
 }
 
 
+// Render map
 function renderMap(cases){
   if(heatLayer) map.removeLayer(heatLayer)
-  pinLayerGroup.clearLayers()
+  pinLayer.clearLayers()
 
   const heatPoints = cases.map(c=>[c.lat,c.lng,1])
   heatLayer = L.heatLayer(heatPoints,{
@@ -185,56 +175,50 @@ function renderMap(cases){
       </div>
     `
     marker.bindPopup(popup)
-    pinLayerGroup.addLayer(marker)
+    pinLayer.addLayer(marker)
   })
 }
 
 
-function updateCategoryDropdown(filteredCases){
+// Update category dropdown based on current date filter
+function updateCategoryOptions(filtered){
   const sel = document.getElementById("categoryFilter")
+  const current = sel.value
   sel.innerHTML = '<option value="">Semua kategori</option>'
 
-  const cats = [...new Set(filteredCases.map(c=>c.category))].sort()
+  const cats = [...new Set(filtered.map(c=>c.category))].sort()
   cats.forEach(cat=>{
     const opt = document.createElement("option")
     opt.value = cat
     opt.textContent = cat
     sel.appendChild(opt)
   })
+
+  if(cats.includes(current)) sel.value = current
 }
 
 
-function applyFilter(){
+// Apply filters instantly
+function applyFilters(){
 
-  const showAll = document.getElementById("showAll").checked
-  const startDate = document.getElementById("startDate").value
-  const endDate = document.getElementById("endDate").value
+  const start = document.getElementById("startDate").value
+  const end = document.getElementById("endDate").value
   const cat = document.getElementById("categoryFilter").value
-
-  // If show all → ignore everything
-  if(showAll){
-    renderMap(allCases)
-    updateCategoryDropdown(allCases)
-    return
-  }
 
   let filtered = allCases
 
-  // Date filter (single or range)
-  if(startDate && !endDate){
-    filtered = filtered.filter(c => c.date.startsWith(startDate))
+  // Date range filter
+  if(start && end){
+    filtered = filtered.filter(c => c.date >= start && c.date <= end)
+  }
+  else if(start && !end){
+    filtered = filtered.filter(c => c.date === start)
   }
 
-  if(startDate && endDate){
-    filtered = filtered.filter(c => 
-      c.date >= startDate && c.date <= endDate
-    )
-  }
+  // Update category dropdown based on date result
+  updateCategoryOptions(filtered)
 
-  // Update category dropdown based on date-filtered result
-  updateCategoryDropdown(filtered)
-
-  // Apply category filter if selected
+  // Category filter
   if(cat){
     filtered = filtered.filter(c => c.category === cat)
   }
@@ -243,31 +227,23 @@ function applyFilter(){
 }
 
 
-function resetFilter(){
-  document.getElementById("showAll").checked = true
-  document.getElementById("startDate").value = ""
-  document.getElementById("endDate").value = ""
-  updateCategoryDropdown(allCases)
-  renderMap(allCases)
-}
+// Event listeners for instant filtering
+document.getElementById("startDate").addEventListener("change", applyFilters)
+document.getElementById("endDate").addEventListener("change", applyFilters)
+document.getElementById("categoryFilter").addEventListener("change", applyFilters)
 
 
-document.getElementById("showAll").addEventListener("change",()=>{
-  if(document.getElementById("showAll").checked){
-    resetFilter()
-  }
-})
-
-
+// Init
 async function init(){
   await loadBoundary()
   allCases = await loadCases()
-  updateCategoryDropdown(allCases)
+  updateCategoryOptions(allCases)
   renderMap(allCases)
 }
 
 init()
 map.on('click',()=> map.closePopup())
 </script>
+
 </body>
 </html>
