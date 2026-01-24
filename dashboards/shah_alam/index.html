@@ -239,7 +239,9 @@ function renderData(){
       iconAnchor:[7,7]
     })
 
-    const marker = L.marker([c.lat,c.lng],{icon}).addTo(markerLayer)
+    const marker = L.marker([c.lat, c.lng], {icon})
+pinLayerGroup.addLayer(marker)
+
 
     const popupHtml = `
       <div style="font-size:13px">
@@ -259,12 +261,41 @@ document.getElementById("categoryFilter").addEventListener("change",renderData)
 document.getElementById("areaFilter").addEventListener("change",renderData)
 
 // Init
-async function init(){
-  await loadBoundary()
-  await loadCSV()
-  renderData()
+let heatLayer
+let pinLayerGroup = L.layerGroup().addTo(map)
+
+async function refreshData() {
+  const data = await loadCases()
+
+  // clear old heatmap
+  if (heatLayer) {
+    map.removeLayer(heatLayer)
+  }
+
+  // clear old pins
+  pinLayerGroup.clearLayers()
+
+  // draw new heatmap
+  heatLayer = L.heatLayer(data.heatPoints, {
+    radius: 40,
+    blur: 30,
+    minOpacity: 0.5
+  }).addTo(map)
+
+  // draw new pins into group
+  addPins(data.casePoints, pinLayerGroup)
 }
+
+async function init() {
+  await loadBoundary()
+  await refreshData()
+
+  // auto refresh every 30 seconds
+  setInterval(refreshData, 30000)
+}
+
 init()
+
 </script>
 
 </body>
