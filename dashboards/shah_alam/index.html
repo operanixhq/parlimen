@@ -5,254 +5,162 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Leaflet Heat -->
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
   <style>
     body { margin:0; font-family: Arial, sans-serif; }
     #map { width:100%; height:100vh; }
 
-    /* Compact filter panel top-right */
-    #filters {
-      position:absolute;
-      top:10px;
-      right:10px;
-      background:white;
-      padding:8px 10px;
-      border-radius:6px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.25);
-      z-index:999;
-      font-size:12px;
-      width:180px;
-    }
-
-    #filters label {
-      font-size:11px;
-      font-weight:bold;
-      display:block;
-      margin-top:4px;
-    }
-
-    #filters input, #filters select {
-      width:100%;
-      font-size:12px;
-      padding:3px;
-      margin-top:2px;
-      box-sizing:border-box;
-    }
-
-    /* Animated pin */
+    /* ===== PIN STYLE (UNCHANGED) ===== */
     .pin {
-      width:16px;
-      height:16px;
-      background:#0080ff;
-      border-radius:50%;
-      position:relative;
-      box-shadow:0 0 0 rgba(0,128,255,0.6);
-      animation:pulse 2s infinite;
-      cursor:pointer;
+      width: 16px;
+      height: 16px;
+      background: #0066ff;
+      border-radius: 50%;
+      position: relative;
+      box-shadow: 0 0 0 rgba(0,102,255,0.6);
+      animation: pulse 2s infinite;
     }
 
     @keyframes pulse {
-      0%   {box-shadow:0 0 0 0 rgba(0,128,255,0.6);}
-      70%  {box-shadow:0 0 0 14px rgba(0,128,255,0);}
-      100%{box-shadow:0 0 0 0 rgba(0,128,255,0);}
+      0% { box-shadow: 0 0 0 0 rgba(0,102,255,0.6); }
+      70% { box-shadow: 0 0 0 12px rgba(0,102,255,0); }
+      100% { box-shadow: 0 0 0 0 rgba(0,102,255,0); }
     }
 
     .pin:hover {
       background:#ff6600;
-      transform:scale(1.3);
+      transform: scale(1.3);
+    }
+
+    /* ===== LIVE BUTTON (NEW) ===== */
+    .live-indicator {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      background: #e60000;
+      color: white;
+      font-size: 13px;
+      font-weight: bold;
+      padding: 8px 14px;
+      border-radius: 20px;
+      box-shadow: 0 0 0 rgba(230,0,0,0.7);
+      animation: livePulse 1.5s infinite;
+      z-index: 9999;
+      user-select: none;
+    }
+
+    @keyframes livePulse {
+      0%   { box-shadow: 0 0 0 0 rgba(230,0,0,0.7); }
+      70%  { box-shadow: 0 0 0 12px rgba(230,0,0,0); }
+      100%{ box-shadow: 0 0 0 0 rgba(230,0,0,0); }
     }
   </style>
 </head>
 <body>
 
-<div id="filters">
-  <label>Tarikh mula</label>
-  <input type="date" id="startDate">
-
-  <label>Tarikh akhir</label>
-  <input type="date" id="endDate">
-
-  <label>Kategori</label>
-  <select id="categoryFilter">
-    <option value="">Semua kategori</option>
-  </select>
-</div>
-
 <div id="map"></div>
+
+<!-- ===== LIVE INDICATOR (NEW) ===== -->
+<div class="live-indicator">● LIVE</div>
 
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv"
 const GEOJSON_URL = "P108_shah_alam.geojson"
 
-const map = L.map('map').setView([3.0738,101.5183],12)
+const map = L.map('map').setView([3.0738, 101.5183], 12)
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18
+}).addTo(map)
 
-map.createPane("heatPane")
-map.getPane("heatPane").style.zIndex = 200
-map.createPane("pinPane")
-map.getPane("pinPane").style.zIndex = 400
-
-let heatLayer
-let pinLayer = L.layerGroup().addTo(map)
-let allCases = []
-
-
-// CSV parser tahan koma dalam teks
-function parseCSV(text){
-  const rows=[]
-  let row=[], col="", quote=false
-  for(let c of text){
-    if(c=='"') quote=!quote
-    else if(c=="," && !quote){ row.push(col); col="" }
-    else if(c=="\n" && !quote){ row.push(col); rows.push(row); row=[]; col="" }
-    else col+=c
-  }
-  row.push(col); rows.push(row)
-  return rows
-}
-
-
-// Load boundary
-async function loadBoundary(){
+async function loadBoundary() {
   const res = await fetch(GEOJSON_URL)
-  const geo = await res.json()
-  const layer = L.geoJSON(geo,{
-    style:{color:"#0033aa",weight:3,fillOpacity:0}
+  const geojson = await res.json()
+  const boundary = L.geoJSON(geojson, {
+    style: {
+      color: "#0033aa",
+      weight: 3,
+      fillOpacity: 0
+    }
   }).addTo(map)
-  map.fitBounds(layer.getBounds())
+  map.fitBounds(boundary.getBounds())
 }
 
-
-// Load CSV
-async function loadCases(){
+async function loadCases() {
   const res = await fetch(CSV_URL)
   const text = await res.text()
-  const table = parseCSV(text.trim())
-  table.shift()
+  const rows = text.trim().split("\n").slice(1)
 
-  let cases=[]
+  let heatPoints = []
+  let casePoints = []
 
-  table.forEach(cols=>{
+  rows.forEach(r => {
+    const cols = r.split(",")
     const case_id = cols[0]
-    const date = cols[1]
     const category = cols[3]
     const summary = cols[4]
     const lat = parseFloat(cols[6])
     const lng = parseFloat(cols[7])
 
-    if(!isNaN(lat) && !isNaN(lng)){
-      cases.push({case_id,date,category,summary,lat,lng})
+    if (!isNaN(lat) && !isNaN(lng)) {
+      heatPoints.push([lat, lng, 1])
+      casePoints.push({case_id, category, summary, lat, lng})
     }
   })
 
-  return cases
+  return {heatPoints, casePoints}
 }
 
-
-// Render map layers
-function renderMap(cases){
-  if(heatLayer) map.removeLayer(heatLayer)
-  pinLayer.clearLayers()
-
-  const heatPoints = cases.map(c=>[c.lat,c.lng,1])
-
-  heatLayer = L.heatLayer(heatPoints,{
-    radius:45, blur:30, minOpacity:0.5, pane:"heatPane"
+function addHeat(points) {
+  L.heatLayer(points, {
+    radius: 40,
+    blur: 30,
+    minOpacity: 0.5
   }).addTo(map)
+}
 
-  cases.forEach(c=>{
+function addPins(casePoints) {
+  casePoints.forEach(c => {
     const icon = L.divIcon({
-      className:"",
-      html:'<div class="pin"></div>',
-      iconSize:[16,16],
-      iconAnchor:[8,8]
+      className: '',
+      html: '<div class="pin"></div>',
+      iconSize: [16,16],
+      iconAnchor: [8,8]
     })
 
-    const marker = L.marker([c.lat,c.lng],{icon,pane:"pinPane"})
+    const marker = L.marker([c.lat, c.lng], {icon}).addTo(map)
 
-    const popup = `
-      <div style="font-size:13px;line-height:1.4">
-        <strong>${c.category}</strong><br>
+    const popupHtml = `
+      <div style="font-size:14px;line-height:1.4">
+        <strong>${c.case_id}</strong><br>
         ${c.summary}<br><br>
         <a href="details.html?case_id=${encodeURIComponent(c.case_id)}"
-           style="color:#0066ff;font-weight:bold;text-decoration:none">
+           target="_blank"
+           style="color:#0066ff;text-decoration:none;font-weight:bold">
            Lihat detail →
         </a>
       </div>
     `
-    marker.bindPopup(popup)
-    pinLayer.addLayer(marker)
+    marker.bindPopup(popupHtml)
   })
 }
 
-
-// Update category options based on filtered set
-function updateCategoryOptions(filtered){
-  const sel = document.getElementById("categoryFilter")
-  const current = sel.value
-  sel.innerHTML = '<option value="">Semua kategori</option>'
-
-  const cats = [...new Set(filtered.map(c=>c.category))].sort()
-  cats.forEach(cat=>{
-    const opt = document.createElement("option")
-    opt.value = cat
-    opt.textContent = cat
-    sel.appendChild(opt)
-  })
-
-  if(cats.includes(current)) sel.value = current
-}
-
-
-// Apply filters instantly
-function applyFilters(){
-  const start = document.getElementById("startDate").value
-  const end   = document.getElementById("endDate").value
-  const cat   = document.getElementById("categoryFilter").value
-
-  let filtered = allCases
-
-  // Date filter
-  if(start && end){
-    filtered = filtered.filter(c => c.date >= start && c.date <= end)
-  } else if(start){
-    filtered = filtered.filter(c => c.date === start)
-  }
-
-  // Update category list based on date result
-  updateCategoryOptions(filtered)
-
-  // Category filter
-  if(cat){
-    filtered = filtered.filter(c => c.category === cat)
-  }
-
-  renderMap(filtered)
-}
-
-
-// Event listeners
-document.getElementById("startDate").addEventListener("change", applyFilters)
-document.getElementById("endDate").addEventListener("change", applyFilters)
-document.getElementById("categoryFilter").addEventListener("change", applyFilters)
-
-
-// Init
-async function init(){
+async function init() {
   await loadBoundary()
-  allCases = await loadCases()
-  updateCategoryOptions(allCases)
-  renderMap(allCases)
+  const data = await loadCases()
+  addHeat(data.heatPoints)
+  addPins(data.casePoints)
 }
 
 init()
-map.on('click',()=> map.closePopup())
+map.on('click', () => map.closePopup())
 </script>
 
 </body>
 </html>
-
