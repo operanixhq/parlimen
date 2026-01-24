@@ -12,88 +12,118 @@
   <!-- Leaflet Heat -->
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
+  <!-- Flatpickr Date Range Picker -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
   <style>
     body { margin:0; font-family: Arial, sans-serif; }
     #map { width:100%; height:100vh; }
 
-    /* Pulsing Pin */
+    /* Filter Box */
+    #filterBox {
+      position:absolute;
+      top:10px;
+      right:10px;
+      background:white;
+      padding:6px;
+      border-radius:6px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.2);
+      z-index:999;
+    }
+
+    .filterRow {
+      display:grid;
+      grid-template-columns:auto auto;
+      gap:6px;
+    }
+
+    #dateRange, #categoryFilter {
+      width:140px;
+      height:28px;
+      font-size:12px;
+      padding:2px 4px;
+      border:1px solid #ccc;
+      border-radius:4px;
+      background:#fff;
+    }
+
+    @media(max-width:600px){
+      .filterRow{
+        grid-template-columns:1fr;
+      }
+      #dateRange, #categoryFilter{
+        width:180px;
+      }
+    }
+
+    /* Animated pin */
     .pin {
-      width:16px;
-      height:16px;
+      width:14px;
+      height:14px;
       background:#0066ff;
       border-radius:50%;
       position:relative;
       box-shadow:0 0 0 rgba(0,102,255,0.6);
       animation:pulse 2s infinite;
     }
+
     @keyframes pulse {
       0% { box-shadow:0 0 0 0 rgba(0,102,255,0.6); }
       70% { box-shadow:0 0 0 12px rgba(0,102,255,0); }
       100% { box-shadow:0 0 0 0 rgba(0,102,255,0); }
     }
-    .pin:hover {
-      background:#ff6600;
-      transform:scale(1.3);
-    }
 
-    /* Filter box */
-    #filterBox {
-      position:absolute;
-      top:10px;
-      right:10px;
-      background:white;
-      padding:6px 8px;
-      border-radius:6px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.15);
-      font-size:12px;
-      z-index:999;
-      display:flex;
-      gap:6px;
-      align-items:center;
-    }
-    #filterBox input, #filterBox select {
-      font-size:12px;
-      padding:2px 4px;
-    }
-
-    /* LIVE badge */
+    /* LIVE button */
     #liveBadge {
       position:absolute;
-      bottom:12px;
-      right:12px;
-      background:red;
+      bottom:15px;
+      right:15px;
+      background:#e00000;
       color:white;
       font-size:12px;
       font-weight:bold;
-      padding:6px 10px;
+      padding:6px 12px;
       border-radius:20px;
-      box-shadow:0 0 0 rgba(255,0,0,0.7);
-      animation:livepulse 1.5s infinite;
+      display:flex;
+      align-items:center;
+      gap:6px;
       z-index:999;
+      box-shadow:0 2px 6px rgba(0,0,0,0.3);
     }
-    @keyframes livepulse {
-      0% { box-shadow:0 0 0 0 rgba(255,0,0,0.7); }
-      70% { box-shadow:0 0 0 10px rgba(255,0,0,0); }
-      100% { box-shadow:0 0 0 0 rgba(255,0,0,0); }
+
+    #liveDot {
+      width:8px;
+      height:8px;
+      background:white;
+      border-radius:50%;
+      animation:blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%,100% {opacity:1;}
+      50% {opacity:0.3;}
     }
   </style>
 </head>
 <body>
 
-<!-- Filter -->
+<div id="map"></div>
+
+<!-- Filter UI -->
 <div id="filterBox">
-  <input type="date" id="dateStart">
-  <span>hingga</span>
-  <input type="date" id="dateEnd">
-  <select id="categoryFilter">
-    <option value="">Semua kategori</option>
-  </select>
+  <div class="filterRow">
+    <input id="dateRange" placeholder="Pilih tarikh">
+    <select id="categoryFilter">
+      <option value="">Semua kategori</option>
+    </select>
+  </div>
 </div>
 
 <!-- LIVE badge -->
-<div id="liveBadge">LIVE</div>
-
-<div id="map"></div>
+<div id="liveBadge">
+  <div id="liveDot"></div>LIVE
+</div>
 
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv"
@@ -105,99 +135,106 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:18
 }).addTo(map)
 
-let ALL_CASES = []
-let heatLayer = null
+let allCases = []
+let heatLayer
+let markerLayer = L.layerGroup().addTo(map)
 
+// Boundary
 async function loadBoundary(){
   const res = await fetch(GEOJSON_URL)
-  const geojson = await res.json()
-  const boundary = L.geoJSON(geojson,{
+  const geo = await res.json()
+  const boundary = L.geoJSON(geo,{
     style:{color:"#0033aa",weight:3,fillOpacity:0}
   }).addTo(map)
   map.fitBounds(boundary.getBounds())
 }
 
+// Load CSV
 async function loadCases(){
   const res = await fetch(CSV_URL)
   const text = await res.text()
   const rows = text.trim().split("\n").slice(1)
 
-  let categories = new Set()
-
   rows.forEach(r=>{
-    const cols = r.split(",")
-
-    const case_id = cols[0]
-    const dateStr = cols[1]
-    const category = cols[3]
-    const summary = cols[4]
-    const lat = parseFloat(cols[6])
-    const lng = parseFloat(cols[7])
+    const c = r.split(",")
+    const case_id = c[0]
+    const category = c[3]
+    const summary = c[4]
+    const date = c[1]   // tarikh dalam column B (yyyy-mm-dd)
+    const lat = parseFloat(c[6])
+    const lng = parseFloat(c[7])
 
     if(!isNaN(lat) && !isNaN(lng)){
-      ALL_CASES.push({case_id,date:dateStr,category,summary,lat,lng})
-      categories.add(category)
+      allCases.push({case_id,category,summary,date,lat,lng})
     }
   })
 
-  // fill category dropdown
-  const sel = document.getElementById("categoryFilter")
-  categories.forEach(c=>{
-    const opt=document.createElement("option")
-    opt.value=c
-    opt.textContent=c
-    sel.appendChild(opt)
-  })
-
+  populateCategory()
   applyFilters()
 }
 
-function applyFilters(){
-  const dStart = document.getElementById("dateStart").value
-  const dEnd   = document.getElementById("dateEnd").value
-  const cat    = document.getElementById("categoryFilter").value
+// Populate category dropdown
+function populateCategory(){
+  const sel = document.getElementById("categoryFilter")
+  const cats = [...new Set(allCases.map(c=>c.category))].sort()
+  cats.forEach(cat=>{
+    const opt = document.createElement("option")
+    opt.value = cat
+    opt.textContent = cat
+    sel.appendChild(opt)
+  })
+}
 
-  let filtered = ALL_CASES.filter(c=>{
+// Apply filters
+function applyFilters(){
+  const range = document.getElementById("dateRange").value
+  const cat = document.getElementById("categoryFilter").value
+
+  let start=null, end=null
+  if(range.includes(" to ")){
+    const parts = range.split(" to ")
+    start = parts[0]
+    end = parts[1]
+  }
+
+  const filtered = allCases.filter(c=>{
     let pass=true
-    if(cat && c.category!==cat) pass=false
-    if(dStart && new Date(c.date) < new Date(dStart)) pass=false
-    if(dEnd && new Date(c.date) > new Date(dEnd)) pass=false
+    if(start && end){
+      pass = c.date >= start && c.date <= end
+    }
+    if(cat){
+      pass = pass && c.category === cat
+    }
     return pass
   })
 
-  redrawMap(filtered)
+  drawMap(filtered)
 }
 
-function redrawMap(cases){
-  // remove old layers
-  map.eachLayer(l=>{
-    if(l instanceof L.Marker || l instanceof L.HeatLayer){
-      map.removeLayer(l)
-    }
-  })
+// Draw heat + pins
+function drawMap(cases){
+  markerLayer.clearLayers()
+  if(heatLayer) map.removeLayer(heatLayer)
 
-  // heatmap
-  const heatPts = cases.map(c=>[c.lat,c.lng,1])
-  heatLayer = L.heatLayer(heatPts,{
+  const heatPoints = cases.map(c=>[c.lat,c.lng,1])
+  heatLayer = L.heatLayer(heatPoints,{
     radius:40, blur:30, minOpacity:0.5
   }).addTo(map)
 
-  // pins
   cases.forEach(c=>{
-    const icon=L.divIcon({
+    const icon = L.divIcon({
       className:'',
       html:'<div class="pin"></div>',
-      iconSize:[16,16],
-      iconAnchor:[8,8]
+      iconSize:[14,14],
+      iconAnchor:[7,7]
     })
 
-    const marker=L.marker([c.lat,c.lng],{icon}).addTo(map)
+    const m = L.marker([c.lat,c.lng],{icon}).addTo(markerLayer)
 
-    const popupHtml = `
-      <div style="font-size:13px;line-height:1.4">
-        <strong>Case ID:</strong> ${c.case_id}<br>
-        <strong>Kategori:</strong> ${c.category}<br>
-        <strong>Ringkasan:</strong><br>${c.summary}<br><br>
+    const popup = `
+      <div style="font-size:13px">
+        <strong>${c.case_id}</strong><br>
+        ${c.summary}<br><br>
         <a href="details.html?case_id=${encodeURIComponent(c.case_id)}"
            target="_blank"
            style="color:#0066ff;font-weight:bold;text-decoration:none">
@@ -205,22 +242,28 @@ function redrawMap(cases){
         </a>
       </div>
     `
-    marker.bindPopup(popupHtml)
+    m.bindPopup(popup)
   })
 }
 
-// auto filter trigger
-document.getElementById("dateStart").addEventListener("change",applyFilters)
-document.getElementById("dateEnd").addEventListener("change",applyFilters)
-document.getElementById("categoryFilter").addEventListener("change",applyFilters)
+// Init date picker
+flatpickr("#dateRange",{
+  mode:"range",
+  dateFormat:"Y-m-d",
+  onChange:applyFilters
+})
 
+// Category change event
+document.getElementById("categoryFilter")
+  .addEventListener("change",applyFilters)
+
+// Init
 async function init(){
   await loadBoundary()
   await loadCases()
 }
 
 init()
-map.on('click',()=>map.closePopup())
 </script>
 
 </body>
