@@ -104,11 +104,28 @@
       0%,100% {opacity:1;}
       50% {opacity:0.3;}
     }
+    /* Powered by box */
+#poweredBox {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0,0,0,0.85);
+  color: #ffffff;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
   </style>
 </head>
 <body>
 
 <div id="map"></div>
+<div id="poweredBox">Powered by Operanix</div>
+
 
 <!-- Filter UI -->
 <div id="filterBox">
