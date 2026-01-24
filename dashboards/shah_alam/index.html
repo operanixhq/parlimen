@@ -5,18 +5,34 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Leaflet Heat -->
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
   <style>
     body { margin:0; font-family: Arial, sans-serif; }
+
     #map { width:100%; height:100vh; }
 
-    /* Animated pulsing pin */
+    /* top filter bar */
+    #filters {
+      position:absolute;
+      top:10px;
+      left:10px;
+      background:white;
+      padding:8px 12px;
+      border-radius:6px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.2);
+      z-index:999;
+      font-size:14px;
+    }
+
+    #filters select, #filters input {
+      margin:3px;
+      padding:4px;
+    }
+
+    /* animated pin */
     .pin {
       width:18px;
       height:18px;
@@ -29,18 +45,29 @@
     }
 
     @keyframes pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(0,128,255,0.6); }
-      70%  { box-shadow: 0 0 0 15px rgba(0,128,255,0); }
-      100%{ box-shadow: 0 0 0 0 rgba(0,128,255,0); }
+      0%   { box-shadow:0 0 0 0 rgba(0,128,255,0.6);}
+      70%  { box-shadow:0 0 0 15px rgba(0,128,255,0);}
+      100%{ box-shadow:0 0 0 0 rgba(0,128,255,0);}
     }
 
     .pin:hover {
       background:#ff6600;
-      transform: scale(1.3);
+      transform:scale(1.3);
     }
   </style>
 </head>
 <body>
+
+<div id="filters">
+  Kategori:
+  <select id="categoryFilter">
+    <option value="">Semua</option>
+  </select>
+  Tarikh:
+  <input type="date" id="dateFilter">
+  <button onclick="applyFilter()">Tapis</button>
+  <button onclick="resetFilter()">Reset</button>
+</div>
 
 <div id="map"></div>
 
@@ -48,115 +75,107 @@
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv"
 const GEOJSON_URL = "P108_shah_alam.geojson"
 
-const map = L.map('map').setView([3.0738, 101.5183], 12)
+const map = L.map('map').setView([3.0738,101.5183],12)
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:18
 }).addTo(map)
 
-// --- Load boundary ---
-async function loadBoundary(){
-  const res = await fetch(GEOJSON_URL)
-  const geojson = await res.json()
+// separate panes so pins always on top
+map.createPane("heatPane")
+map.getPane("heatPane").style.zIndex = 200
 
-  const layer = L.geoJSON(geojson,{
-    style:{
-      color:"#0033aa",
-      weight:3,
-      fillOpacity:0
-    }
-  }).addTo(map)
+map.createPane("pinPane")
+map.getPane("pinPane").style.zIndex = 400
 
-  map.fitBounds(layer.getBounds())
-}
+let heatLayer
+let pinLayerGroup = L.layerGroup().addTo(map)
+
+let allCases = []
 
 
-// --- CSV parser that handles commas inside text ---
+// --- CSV parser ---
 function parseCSV(text){
-  const rows = []
-  let row = []
-  let col = ''
-  let insideQuotes = false
+  const rows=[]
+  let row=[],col="",quote=false
 
-  for (let i=0;i<text.length;i++){
-    const c = text[i]
-
-    if (c === '"' ) {
-      insideQuotes = !insideQuotes
-    } 
-    else if (c === ',' && !insideQuotes){
-      row.push(col)
-      col = ''
-    }
-    else if (c === '\n' && !insideQuotes){
-      row.push(col)
-      rows.push(row)
-      row=[]
-      col=''
-    }
-    else {
-      col += c
-    }
+  for(let c of text){
+    if(c=='"') quote = !quote
+    else if(c=="," && !quote){ row.push(col); col="" }
+    else if(c=="\n" && !quote){ row.push(col); rows.push(row); row=[]; col=""}
+    else col+=c
   }
   row.push(col)
   rows.push(row)
-
   return rows
 }
 
 
-// --- Load cases from sheet ---
+// --- load boundary ---
+async function loadBoundary(){
+  const res = await fetch(GEOJSON_URL)
+  const geojson = await res.json()
+  const layer = L.geoJSON(geojson,{
+    style:{color:"#0033aa",weight:3,fillOpacity:0}
+  }).addTo(map)
+  map.fitBounds(layer.getBounds())
+}
+
+
+// --- load sheet data ---
 async function loadCases(){
   const res = await fetch(CSV_URL)
   const text = await res.text()
-
   const table = parseCSV(text.trim())
-  table.shift() // remove header
+  table.shift()
 
-  let heatPoints = []
-  let casePoints = []
+  let cases=[]
 
-  table.forEach(cols => {
+  table.forEach(cols=>{
+    const case_id = cols[0]
+    const category = cols[3]
+    const summary = cols[4]
+    const date = cols[1]       // tarikh col B
+    const lat = parseFloat(cols[6])
+    const lng = parseFloat(cols[7])
 
-    // ===== Column mapping =====
-    const case_id   = cols[0]   // col 0
-    const category = cols[3]   // col 3
-    const summary  = cols[4]   // col 4
-    const lat      = parseFloat(cols[6]) // col G
-    const lng      = parseFloat(cols[7]) // col H
-    // ==========================
-
-    if (!isNaN(lat) && !isNaN(lng)) {
-      heatPoints.push([lat,lng,1])
-      casePoints.push({
-        case_id,
-        category,
-        summary,
-        lat,
-        lng
-      })
+    if(!isNaN(lat) && !isNaN(lng)){
+      cases.push({case_id,category,summary,date,lat,lng})
     }
   })
 
-  return {heatPoints, casePoints}
+  return cases
 }
 
 
-// --- Heatmap ---
-function addHeat(points){
-  L.heatLayer(points,{
-    radius:45,
-    blur:30,
-    minOpacity:0.5
+// --- populate category dropdown ---
+function buildCategoryFilter(cases){
+  const sel = document.getElementById("categoryFilter")
+  const cats = [...new Set(cases.map(c=>c.category))].sort()
+  cats.forEach(cat=>{
+    const opt = document.createElement("option")
+    opt.value = cat
+    opt.textContent = cat
+    sel.appendChild(opt)
+  })
+}
+
+
+// --- draw map layers based on filtered cases ---
+function renderMap(cases){
+
+  // clear previous
+  if(heatLayer) map.removeLayer(heatLayer)
+  pinLayerGroup.clearLayers()
+
+  // heat points
+  const heatPoints = cases.map(c=>[c.lat,c.lng,1])
+  heatLayer = L.heatLayer(heatPoints,{
+    radius:45, blur:30, minOpacity:0.5, pane:"heatPane"
   }).addTo(map)
-}
 
-
-// --- Pins + popup ---
-function addPins(casePoints){
-
-  casePoints.forEach(c => {
-
+  // pins
+  cases.forEach(c=>{
     const icon = L.divIcon({
       className:"",
       html:'<div class="pin"></div>',
@@ -164,37 +183,58 @@ function addPins(casePoints){
       iconAnchor:[9,9]
     })
 
-    const marker = L.marker([c.lat,c.lng],{icon}).addTo(map)
+    const marker = L.marker([c.lat,c.lng],{
+      icon,
+      pane:"pinPane"
+    })
 
-    const popupHtml = `
-      <div style="font-size:14px;line-height:1.4;max-width:220px">
+    const popup = `
+      <div style="font-size:14px;line-height:1.4">
         <strong>${c.category}</strong><br>
         ${c.summary}<br><br>
         <a href="details.html?case_id=${encodeURIComponent(c.case_id)}"
-           style="color:#0066ff;text-decoration:none;font-weight:bold">
+           style="color:#0066ff;font-weight:bold;text-decoration:none">
            Lihat detail →
         </a>
       </div>
     `
-
-    marker.bindPopup(popupHtml)
+    marker.bindPopup(popup)
+    pinLayerGroup.addLayer(marker)
   })
 }
 
 
-// --- Init ---
+// --- filter actions ---
+function applyFilter(){
+  const cat = document.getElementById("categoryFilter").value
+  const date = document.getElementById("dateFilter").value
+
+  let filtered = allCases
+
+  if(cat) filtered = filtered.filter(c=>c.category===cat)
+  if(date) filtered = filtered.filter(c=>c.date.startsWith(date))
+
+  renderMap(filtered)
+}
+
+function resetFilter(){
+  document.getElementById("categoryFilter").value=""
+  document.getElementById("dateFilter").value=""
+  renderMap(allCases)
+}
+
+
+// --- init ---
 async function init(){
   await loadBoundary()
-  const data = await loadCases()
-  addHeat(data.heatPoints)
-  addPins(data.casePoints)
+  allCases = await loadCases()
+  buildCategoryFilter(allCases)
+  renderMap(allCases)
 }
 
 init()
 
-// close popup when click map
 map.on('click',()=> map.closePopup())
-
 </script>
 </body>
 </html>
