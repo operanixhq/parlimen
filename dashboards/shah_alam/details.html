@@ -11,10 +11,7 @@ body{
   padding:18px;
   background:#f4f6f8;
 }
-h2{
-  margin-top:0;
-  font-size:18px;
-}
+h2{margin-top:0;font-size:18px;}
 .card{
   background:white;
   border-radius:12px;
@@ -24,11 +21,7 @@ h2{
   font-size:15px;
   line-height:1.5;
 }
-a{
-  color:#0066ff;
-  text-decoration:none;
-  font-weight:bold;
-}
+a{color:#0066ff;text-decoration:none;font-weight:bold;}
 .action-btn{
   display:inline-flex;
   align-items:center;
@@ -40,27 +33,10 @@ a{
   border-radius:8px;
   font-size:14px;
   font-weight:bold;
-  text-decoration:none;
 }
-.action-btn img{
-  width:18px;
-  height:18px;
-}
-.back-link{
-  display:inline-block;
-  margin-top:10px;
-  font-size:14px;
-}
-.case-image{
-  margin-top:10px;
-  width:100%;
-  border-radius:8px;
-}
-@media(max-width:600px){
-  body{ padding:14px; }
-  .card{ font-size:14px; }
-  h2{ font-size:17px; }
-}
+.action-btn img{width:18px;height:18px;}
+.back-link{display:inline-block;margin-top:10px;font-size:14px;}
+.case-image{margin-top:10px;width:100%;border-radius:8px;}
 </style>
 </head>
 <body>
@@ -77,7 +53,6 @@ if(sessionStorage.getItem("operanix_auth") !== "ok"){
 
 <script>
 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";
-
 const urlParams = new URLSearchParams(window.location.search);
 const caseId = urlParams.get("case_id");
 
@@ -90,11 +65,10 @@ fetch(csvUrl + "&t=" + Date.now())
 
   rows.forEach(row => {
 
-    // CSV safe split (handle commas inside quotes)
-    const cols = row.match(/("([^"]|"")*"|[^,]+)(?=,|$)/g);
+    // FIXED regex - now keeps empty columns
+    const cols = row.match(/("([^"]|"")*"|[^,]*)(?=,|$)/g);
 
-    // buang quote luar jika ada
-    const clean = (v) => v ? v.replace(/^"|"$/g,"") : "";
+    const clean = v => v ? v.replace(/^"|"$/g,"") : "";
 
     if(clean(cols[0]).trim() === caseId.trim()){
 
@@ -107,13 +81,13 @@ fetch(csvUrl + "&t=" + Date.now())
       const status    = clean(cols[5]);
       const lat       = clean(cols[6]);
       const lng       = clean(cols[7]);
-      const imgUrl    = clean(cols[19]);   // column 19
+      const imgUrl    = clean(cols[19]);
 
       const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
       let imageBlock = "";
       if(imgUrl && imgUrl.startsWith("http")){
-        imageBlock = `<img class="case-image" src="${imgUrl}" alt="Gambar Aduan">`;
+        imageBlock = `<img class="case-image" src="${imgUrl}">`;
       }
 
       document.getElementById("result").innerHTML = `
@@ -145,7 +119,6 @@ fetch(csvUrl + "&t=" + Date.now())
   if(!found){
     document.getElementById("result").innerHTML = "Kes tidak dijumpai";
   }
-
 });
 </script>
 
