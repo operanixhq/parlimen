@@ -50,6 +50,7 @@
       font-size:13px;
       width:200px;
     }
+
     #filterBox input, #filterBox select {
       width:100%;
       margin-top:4px;
@@ -73,6 +74,7 @@
       animation:blink 1s infinite;
       z-index:999;
     }
+
     @keyframes blink {
       0%,100% { opacity:1; }
       50% { opacity:0.4; }
@@ -114,6 +116,18 @@
 <div id="powered">Powered by Operanix</div>
 
 <script>
+/* ================================
+   🔒 OPERANIX AUTH GATE
+   ================================ */
+
+if(sessionStorage.getItem("operanix_auth") !== "ok"){
+  window.location.href = "login.html";
+}
+
+/* ================================
+   MAIN DASHBOARD CODE
+   ================================ */
+
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv"
 const GEOJSON_URL = "P108_shah_alam.geojson"
 
@@ -127,7 +141,6 @@ let boundaryLayer
 let allCases = []
 let heatLayer
 let markerLayer = L.layerGroup().addTo(map)
-
 let selectedStart = null
 let selectedEnd = null
 
@@ -160,26 +173,21 @@ async function loadCSV(){
   const res = await fetch(CSV_URL)
   const text = await res.text()
   const rows = text.trim().split("\n").slice(1)
-
   const categorySet = new Set()
 
   rows.forEach(r=>{
     const c = r.split(",")
-
     const case_id   = c[0]
     const tarikh    = c[1]
     const kategori  = c[3]
     const ringkasan= c[4]
     const lat       = parseFloat(c[6])
     const lng       = parseFloat(c[7])
-
     if(isNaN(lat)||isNaN(lng)) return
 
     categorySet.add(kategori)
-
     const point = L.latLng(lat,lng)
     const inside = leafletPip.pointInLayer(point, boundaryLayer).length > 0
-
     allCases.push({case_id,tarikh,kategori,ringkasan,lat,lng,inside})
   })
 
@@ -217,7 +225,6 @@ function renderData(){
 
   filtered.forEach(c=>{
     const pinClass = c.inside ? "pin-blue" : "pin-orange"
-
     const icon = L.divIcon({
       className:"",
       html:`<div class="${pinClass}"></div>`,
@@ -248,7 +255,7 @@ async function init(){
   await loadCSV()
   renderData()
 
-  // auto refresh CSV setiap 30 saat
+  // Auto refresh setiap 30 saat
   setInterval(async ()=>{
     await loadCSV()
     renderData()
