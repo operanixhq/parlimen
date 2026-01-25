@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <title>Maklumat Aduan Lengkap</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 body{
   font-family: Arial, sans-serif;
@@ -30,8 +29,6 @@ a{
   text-decoration:none;
   font-weight:bold;
 }
-
-/* Waze Button */
 .action-btn{
   display:inline-flex;
   align-items:center;
@@ -49,28 +46,21 @@ a{
   width:18px;
   height:18px;
 }
-
 .back-link{
   display:inline-block;
   margin-top:10px;
   font-size:14px;
 }
-
-/* Mobile optimization */
 @media(max-width:600px){
   body{ padding:14px; }
   .card{ font-size:14px; }
   h2{ font-size:17px; }
-  .action-btn{
-    padding:10px 18px;
-  }
+  .action-btn{ padding:10px 18px; }
 }
 </style>
 </head>
-
 <body>
 
-<!-- Security Gate -->
 <script>
 if(sessionStorage.getItem("operanix_auth") !== "ok"){
   sessionStorage.setItem("operanix_redirect", window.location.href);
@@ -83,7 +73,6 @@ if(sessionStorage.getItem("operanix_auth") !== "ok"){
 
 <script>
 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";
-
 const urlParams = new URLSearchParams(window.location.search);
 const caseId = urlParams.get('case_id');
 
@@ -95,7 +84,6 @@ fetch(csvUrl)
 
   rows.forEach(row=>{
     const cols = row.split(",");
-
     if(cols[0].trim() === caseId.trim()){
       found = true;
 
@@ -103,20 +91,27 @@ fetch(csvUrl)
       const lng = cols[7];
       const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
+      const imageUrl = cols[19] ? cols[19].trim() : "";
+
       document.getElementById('result').innerHTML = `
         <div class="card">
           <b>Case ID:</b> ${cols[0]}<br>
           <b>Tarikh:</b> ${cols[1]}<br>
           <b>Kategori:</b> ${cols[3]}<br>
           <b>Ringkasan:</b><br>${cols[4]}<br><br>
-          <b>Status:</b> ${cols[5]}<br>
 
+          ${imageUrl ? `
+            <b>Gambar Aduan:</b><br>
+            <img src="${imageUrl}" 
+                 style="width:100%;max-width:420px;border-radius:10px;margin-top:6px;margin-bottom:10px;">
+          ` : ""}
+
+          <b>Status:</b> ${cols[5]}<br>
           <a class="action-btn" href="${wazeLink}" target="_blank">
             <img src="../assets/waze-icon.svg">
             Buka Waze
           </a>
         </div>
-
         <a class="back-link" href="index.html">← Kembali ke Peta</a>
       `;
     }
