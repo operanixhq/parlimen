@@ -76,15 +76,10 @@
 </div>
 
 <script>
-/*
-  Token sebenar tidak disimpan.
-  Yang disimpan hanya SHA-256 hash.
-  Contoh token sebenar boleh jadi: YB-SHAHALAM-2026
-*/
 
-// === GANTIKAN HASH INI DENGAN HASH TOKEN PILIHAN KAU ===
-const VALID_HASH = "b14b843edf61d0e5a3d5f8c18a5b9eae2e9c2a6d5b25e5eacac6f8b7e9a2b1c"; 
-// (ini contoh sahaja, kau akan generate hash sebenar nanti)
+
+const VALID_HASH = "4da6ffc3fc9931bfe0d35945d6efbc892bd82d7a6723330d09d918a14605bbde"; 
+
 
 async function sha256(text){
   const encoder = new TextEncoder();
