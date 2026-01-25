@@ -93,11 +93,11 @@ fetch(csvUrl)
           <b>Tarikh:</b> ${cols[1]}<br>    
           <b>Kategori:</b> ${cols[3]}<br>    
           <b>Ringkasan:</b>
-<div style="margin-top:6px;margin-bottom:12px;white-space:pre-wrap;">
-${cols[4]}
-</div>
+            <div style="margin-top:6px;white-space:pre-wrap;">
+            ${cols[4].replace(/^"|"$/g,"")}
+            </div>
 
-<b>Status:</b> ${cols[5]}<br>
+            <b>Status:</b> ${cols[5].replace(/^"|"$/g,"")}<br>
 
           <a class="action-btn" href="${wazeLink}" target="_blank">    
             <img src="../assets/waze-icon.svg">    
