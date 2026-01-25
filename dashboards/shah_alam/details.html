@@ -2,19 +2,69 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Detail Kes</title>
+<title>Maklumat Aduan Lengkap</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body{font-family:Arial;padding:20px;}
-.card{border:1px solid #ccc;padding:15px;margin-bottom:10px;border-radius:8px;}
-a{color:#0066ff;text-decoration:none;font-weight:bold;}
+body{
+  font-family: Arial, sans-serif;
+  margin:0;
+  padding:18px;
+  background:#f4f6f8;
+}
+
+h2{
+  margin-top:0;
+  font-size:18px;
+}
+
+.card{
+  background:white;
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom:14px;
+  font-size:15px;
+  line-height:1.5;
+}
+
+a{
+  color:#0066ff;
+  text-decoration:none;
+  font-weight:bold;
+}
+
+.action-btn{
+  display:inline-block;
+  margin-top:10px;
+  padding:10px 14px;
+  background:#0066ff;
+  color:white;
+  border-radius:8px;
+  font-size:14px;
+}
+
+.back-link{
+  display:inline-block;
+  margin-top:10px;
+  font-size:14px;
+}
+
+/* Make full width nicely on phone */
+@media(max-width:600px){
+  body{ padding:14px; }
+  .card{ font-size:14px; }
+  h2{ font-size:17px; }
+  .action-btn{ width:100%; text-align:center; }
+}
 </style>
 </head>
 <body>
 
 <script>
 if(sessionStorage.getItem("operanix_auth") !== "ok"){
-    sessionStorage.setItem("operanix_redirect", window.location.href);
-    window.location.href = "login.html";
+  sessionStorage.setItem("operanix_redirect", window.location.href);
+  window.location.href = "login.html";
 }
 </script>
 
@@ -48,19 +98,22 @@ fetch(csvUrl)
           <b>Case ID:</b> ${cols[0]}<br>
           <b>Tarikh:</b> ${cols[1]}<br>
           <b>Kategori:</b> ${cols[3]}<br>
-          <b>Ringkasan:</b> ${cols[4]}<br>
-          <b>Status:</b> ${cols[5]}<br><br>
-          <a href="${wazeLink}" target="_blank">🧭 Buka Waze</a>
+          <b>Ringkasan:</b><br>${cols[4]}<br><br>
+          <b>Status:</b> ${cols[5]}<br>
+
+          <a class="action-btn" href="${wazeLink}" target="_blank">🧭 Buka Waze</a>
         </div>
-        <a href="index.html">← Kembali ke Peta</a>
+
+        <a class="back-link" href="index.html">← Kembali ke Peta</a>
       `;
     }
   });
 
   if(!found){
-    document.getElementById('result').innerHTML="Kes tidak dijumpai";
+    document.getElementById('result').innerHTML = "Kes tidak dijumpai";
   }
 });
 </script>
+
 </body>
 </html>
