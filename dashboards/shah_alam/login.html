@@ -100,13 +100,23 @@ async function login(){
 
   const hashed = await sha256(input);
 
-  if(hashed === VALID_HASH){
+ if(hashed === VALID_HASH){
     sessionStorage.setItem("operanix_auth","ok");
-    window.location.href = "index.html";
-  } else {
+
+    // Check jika ada halaman asal yang diminta sebelum login
+    const redirectUrl = sessionStorage.getItem("operanix_redirect");
+    if(redirectUrl){
+        sessionStorage.removeItem("operanix_redirect");
+        window.location.href = redirectUrl;
+    } else {
+        window.location.href = "index.html";
+    }
+
+} else {
     errorEl.style.display="block";
     inputEl.value="";
-  }
+}
+
 }
 
 // Allow Enter key
