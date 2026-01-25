@@ -5,28 +5,23 @@
 <title>Detail Kes</title>
 <style>
 body{font-family:Arial;padding:20px;}
-.card{
-  border:1px solid #ccc;
-  padding:15px;
-  margin-bottom:10px;
-  border-radius:6px;
-}
-a{color:#0066ff;text-decoration:none;}
+.card{border:1px solid #ccc;padding:15px;margin-bottom:10px;border-radius:8px;}
+a{color:#0066ff;text-decoration:none;font-weight:bold;}
 </style>
 </head>
 <body>
+
+<script>
+if(sessionStorage.getItem("operanix_auth") !== "ok"){
+    sessionStorage.setItem("operanix_redirect", window.location.href);
+    window.location.href = "login.html";
+}
+</script>
 
 <h2>Detail Aduan</h2>
 <div id="result">Loading...</div>
 
 <script>
-// ===== SECURITY GATE =====
-if(sessionStorage.getItem("operanix_auth") !== "ok"){
-  sessionStorage.setItem("operanix_redirect",window.location.href);
-    window.location.href="login.html";
-}
-// =========================
-
 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -35,57 +30,37 @@ const caseId = urlParams.get('case_id');
 fetch(csvUrl)
 .then(r=>r.text())
 .then(text=>{
-  const rows = text.trim().split('\n').slice(1);
+  const rows = text.trim().split("\n").slice(1);
   let found = false;
 
   rows.forEach(row=>{
-    const cols = row.split(',');
+    const cols = row.split(",");
 
     if(cols[0].trim() === caseId.trim()){
       found = true;
 
-      const case_id    = cols[0];
-      const tarikh     = cols[1];
-      const kategori   = cols[3];
-      const ringkasan = cols[4];
-      const status    = cols[5] || "";
-      const lat        = parseFloat(cols[6]);
-      const lng        = parseFloat(cols[7]);
-
-      // ===== WAZE LINK =====
+      const lat = cols[6];
+      const lng = cols[7];
       const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
       document.getElementById('result').innerHTML = `
         <div class="card">
-          <b>Case ID:</b> ${case_id}<br>
-          <b>Tarikh:</b> ${tarikh}<br>
-          <b>Kategori:</b> ${kategori}<br>
-          <b>Ringkasan:</b> ${ringkasan}<br>
-          <b>Status:</b> ${status}<br><br>
-
-          <a href="${wazeLink}" target="_blank"
-             style="
-               display:inline-block;
-               background:#2bbd6e;
-               color:white;
-               padding:8px 14px;
-               border-radius:6px;
-               font-weight:bold;
-             ">
-             🧭 Navigasi Waze
-          </a>
+          <b>Case ID:</b> ${cols[0]}<br>
+          <b>Tarikh:</b> ${cols[1]}<br>
+          <b>Kategori:</b> ${cols[3]}<br>
+          <b>Ringkasan:</b> ${cols[4]}<br>
+          <b>Status:</b> ${cols[5]}<br><br>
+          <a href="${wazeLink}" target="_blank">🧭 Buka Waze</a>
         </div>
-
         <a href="index.html">← Kembali ke Peta</a>
       `;
     }
   });
 
   if(!found){
-    document.getElementById('result').innerHTML = "Kes tidak dijumpai";
+    document.getElementById('result').innerHTML="Kes tidak dijumpai";
   }
 });
 </script>
-
 </body>
 </html>
