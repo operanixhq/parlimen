@@ -81,7 +81,7 @@ fetch(csvUrl)
   const rows = text.trim().split("\n").slice(1);    
   let found = false;    
   rows.forEach(row=>{    
-    const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);   
+    const cols = row.match(/("([^"]|"")*"|[^,]+)(?=,|$)/g); 
     if(cols[0].trim() === caseId.trim()){    
       found = true;    
       const lat = cols[6];    
