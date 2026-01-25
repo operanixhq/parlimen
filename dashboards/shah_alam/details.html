@@ -54,7 +54,7 @@ if(sessionStorage.getItem("operanix_auth") !== "ok"){
 <script>
 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";
 const urlParams = new URLSearchParams(window.location.search);
-const caseId = urlParams.get("case_id");
+const caseId = decodeURIComponent(urlParams.get("case_id")|| "").trim();
 
 fetch(csvUrl + "&t=" + Date.now())
 .then(r => r.text())
@@ -68,7 +68,7 @@ fetch(csvUrl + "&t=" + Date.now())
     // FIXED regex - now keeps empty columns
     const cols = row.match(/("([^"]|"")*"|[^,]*)(?=,|$)/g);
 
-    const clean = v => v ? v.replace(/^"|"$/g,"") : "";
+    const clean = v => v ? v.replace(/^"|"$/g,"").trim() : "";
 
     if(clean(cols[0]).trim() === caseId.trim()){
 
