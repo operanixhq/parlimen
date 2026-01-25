@@ -176,15 +176,14 @@ async function loadCSV(){
   const categorySet = new Set()
 
   rows.forEach(r=>{
-    const c = r.split(",")
+    const c = r.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
     const case_id   = c[0]
     const tarikh    = c[1]
     const kategori  = c[3]
     const ringkasan= c[4]
     const lat       = parseFloat(c[6])
     const lng       = parseFloat(c[7])
-    if(c[6].trim()=="" || c[7].trim()=="")
-      return
+    if(isNaN(lat)||isNaN(lng)) return
 
     categorySet.add(kategori)
     const point = L.latLng(lat,lng)
