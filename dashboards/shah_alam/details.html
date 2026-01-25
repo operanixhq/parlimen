@@ -92,8 +92,13 @@ fetch(csvUrl)
           <b>Case ID:</b> ${cols[0]}<br>    
           <b>Tarikh:</b> ${cols[1]}<br>    
           <b>Kategori:</b> ${cols[3]}<br>    
-          <b>Ringkasan:</b><br>${cols[4]}<br><br>    
-          <b>Status:</b> ${cols[5]}<br>    
+          <b>Ringkasan:</b>
+<div style="margin-top:6px;margin-bottom:12px;white-space:pre-wrap;">
+${cols[4]}
+</div>
+
+<b>Status:</b> ${cols[5]}<br>
+
           <a class="action-btn" href="${wazeLink}" target="_blank">    
             <img src="../assets/waze-icon.svg">    
             Buka Waze    
