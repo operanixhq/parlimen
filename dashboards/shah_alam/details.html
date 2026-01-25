@@ -51,15 +51,18 @@ a{
   margin-top:10px;
   font-size:14px;
 }
+.case-image{
+  margin-top:10px;
+  width:100%;
+  border-radius:8px;
+}
 @media(max-width:600px){
   body{ padding:14px; }
   .card{ font-size:14px; }
   h2{ font-size:17px; }
-  .action-btn{ padding:10px 18px; }
 }
 </style>
 </head>
-
 <body>
 
 <script>
@@ -74,10 +77,11 @@ if(sessionStorage.getItem("operanix_auth") !== "ok"){
 
 <script>
 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";
-const urlParams = new URLSearchParams(window.location.search);
-const caseId = urlParams.get('case_id');
 
-fetch(csvUrl)
+const urlParams = new URLSearchParams(window.location.search);
+const caseId = urlParams.get("case_id");
+
+fetch(csvUrl + "&t=" + Date.now())
 .then(r => r.text())
 .then(text => {
 
@@ -86,42 +90,46 @@ fetch(csvUrl)
 
   rows.forEach(row => {
 
-    // === FIXED PARSING ===
-    const cols = row.split(",");
+    // CSV safe split (handle commas inside quotes)
+    const cols = row.match(/("([^"]|"")*"|[^,]+)(?=,|$)/g);
 
-    if(cols[0].trim() === caseId.trim()){
+    // buang quote luar jika ada
+    const clean = (v) => v ? v.replace(/^"|"$/g,"") : "";
+
+    if(clean(cols[0]).trim() === caseId.trim()){
 
       found = true;
 
-      // === FIXED MAPPING ===
-      const case_id   = cols[0];
-      const tarikh    = cols[1];
-      const kategori  = cols[3];
-      const ringkasan = cols[4];
-      const status    = cols[5];
-      const lat       = cols[6];
-      const lng       = cols[7];
-      const gambar    = cols[18]; // column 19
+      const case_id   = clean(cols[0]);
+      const tarikh    = clean(cols[1]);
+      const kategori  = clean(cols[3]);
+      const ringkasan = clean(cols[4]);
+      const status    = clean(cols[5]);
+      const lat       = clean(cols[6]);
+      const lng       = clean(cols[7]);
+      const imgUrl    = clean(cols[19]);   // column 19
 
       const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
-      document.getElementById('result').innerHTML = `
+      let imageBlock = "";
+      if(imgUrl && imgUrl.startsWith("http")){
+        imageBlock = `<img class="case-image" src="${imgUrl}" alt="Gambar Aduan">`;
+      }
+
+      document.getElementById("result").innerHTML = `
         <div class="card">
           <b>Case ID:</b> ${case_id}<br>
           <b>Tarikh:</b> ${tarikh}<br>
-          <b>Kategori:</b> ${kategori}<br>
+          <b>Kategori:</b> ${kategori}<br><br>
 
           <b>Ringkasan:</b>
           <div style="margin-top:6px;white-space:pre-wrap;">
-            ${ringkasan.replace(/^"|"$/g,"")}
+            ${ringkasan}
           </div>
 
-          ${gambar && gambar.trim() !== "" ? `
-            <img src="${gambar}" style="margin-top:10px;max-width:100%;border-radius:8px;">
-          ` : ""}
+          ${imageBlock}
 
-          <br>
-          <b>Status:</b> ${status.replace(/^"|"$/g,"")}<br>
+          <br><b>Status:</b> ${status}<br>
 
           <a class="action-btn" href="${wazeLink}" target="_blank">
             <img src="../assets/waze-icon.svg">
@@ -135,8 +143,9 @@ fetch(csvUrl)
   });
 
   if(!found){
-    document.getElementById('result').innerHTML = "Kes tidak dijumpai";
+    document.getElementById("result").innerHTML = "Kes tidak dijumpai";
   }
+
 });
 </script>
 
