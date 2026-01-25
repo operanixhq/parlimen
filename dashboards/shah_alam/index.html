@@ -176,7 +176,8 @@ async function loadCSV(){
   const categorySet = new Set()
 
   rows.forEach(r=>{
-    const c = r.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
+    const c = r.match(/(".*?"|[^",]+)(?=,|$)/g)
+
     const case_id   = c[0]
     const tarikh    = c[1]
     const kategori  = c[3]
