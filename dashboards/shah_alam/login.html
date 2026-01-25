@@ -1,107 +1,116 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Operanix Access</title>
+  <title>Operanix Secure Access</title>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <style>
-    body {
+    body{
       margin:0;
+      font-family:Arial, sans-serif;
+      background:#0e1628;
       display:flex;
       justify-content:center;
       align-items:center;
       height:100vh;
-      font-family:Arial, sans-serif;
-      background:#f2f4f8;
-    }
-    .box {
-      background:white;
-      padding:30px 25px;
-      border-radius:10px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.15);
-      text-align:center;
-      width:280px;
-    }
-    h2 {
-      margin-top:0;
-      margin-bottom:15px;
-      font-size:18px;
-    }
-    input {
-      width:100%;
-      padding:8px;
-      font-size:14px;
-      border-radius:6px;
-      border:1px solid #ccc;
-      margin-bottom:12px;
-    }
-    button {
-      width:100%;
-      padding:9px;
-      background:#0066ff;
       color:white;
+    }
+    .login-box{
+      background:#111c33;
+      padding:30px 26px;
+      border-radius:10px;
+      box-shadow:0 0 20px rgba(0,0,0,0.6);
+      width:280px;
+      text-align:center;
+    }
+    h2{
+      margin-top:0;
+      margin-bottom:20px;
+      font-size:18px;
+      letter-spacing:1px;
+    }
+    input{
+      width:100%;
+      padding:10px;
+      margin-top:8px;
+      margin-bottom:14px;
+      border-radius:6px;
+      border:none;
+      font-size:14px;
+    }
+    button{
+      width:100%;
+      padding:10px;
       border:none;
       border-radius:6px;
+      background:#0066ff;
+      color:white;
+      font-weight:bold;
       font-size:14px;
       cursor:pointer;
     }
-    button:hover {
-      background:#004ecc;
+    button:hover{
+      background:#0052cc;
     }
-    .error {
-      color:red;
+    .error{
+      color:#ff5555;
       font-size:13px;
-      margin-top:8px;
       display:none;
+      margin-top:5px;
     }
-    .logo {
-      font-weight:bold;
-      font-size:16px;
-      margin-bottom:8px;
-      color:#222;
+    .footer{
+      margin-top:18px;
+      font-size:11px;
+      opacity:0.6;
     }
   </style>
 </head>
 <body>
 
-<div class="box">
-  <div class="logo">Operanix Dashboard</div>
-  <h2>Masukkan Access Token</h2>
-  <input type="password" id="tokenInput" placeholder="Access Token">
-  <button onclick="checkToken()">Masuk</button>
-  <div class="error" id="errorMsg">Token salah</div>
+<div class="login-box">
+  <h2>OPERANIX ACCESS</h2>
+  <input type="password" id="tokenInput" placeholder="Enter access token">
+  <button onclick="login()">ENTER</button>
+  <div class="error" id="errorMsg">Invalid token</div>
+  <div class="footer">Powered by Operanix</div>
 </div>
 
 <script>
-// ====== CONFIG ======
+/*
+  Token sebenar tidak disimpan.
+  Yang disimpan hanya SHA-256 hash.
+  Contoh token sebenar boleh jadi: YB-SHAHALAM-2026
+*/
 
-const STORED_HASH = "4da6ffc3fc9931bfe0d35945d6efbc892bd82d7a6723330d09d918a14605bbde"; 
-// ====================
+// === GANTIKAN HASH INI DENGAN HASH TOKEN PILIHAN KAU ===
+const VALID_HASH = "b14b843edf61d0e5a3d5f8c18a5b9eae2e9c2a6d5b25e5eacac6f8b7e9a2b1c"; 
+// (ini contoh sahaja, kau akan generate hash sebenar nanti)
 
-// SHA256 function
-async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+async function sha256(text){
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashArray.map(b => b.toString(16).padStart(2,"0")).join("");
 }
 
-async function checkToken() {
+async function login(){
   const input = document.getElementById("tokenInput").value.trim();
-  const hash = await sha256(input);
+  const error = document.getElementById("errorMsg");
 
-  if(hash === STORED_HASH) {
-    sessionStorage.setItem("operanix_auth","ok");
-    window.location.href = "index.html";
-  } else {
-    document.getElementById("errorMsg").style.display="block";
+  if(!input){
+    error.style.display="block";
+    return;
   }
-}
 
-// Auto redirect if already logged in
-if(sessionStorage.getItem("operanix_auth")==="ok"){
-  window.location.href="index.html";
+  const hashed = await sha256(input);
+
+  if(hashed === VALID_HASH){
+    sessionStorage.setItem("operanix_auth","ok");
+    window.location.href="index.html";
+  } else {
+    error.style.display="block";
+  }
 }
 </script>
 
