@@ -11,7 +11,10 @@ body{
   padding:18px;
   background:#f4f6f8;
 }
-h2{margin-top:0;font-size:18px;}
+h2{
+  margin-top:0;
+  font-size:18px;
+}
 .card{
   background:white;
   border-radius:12px;
@@ -21,7 +24,11 @@ h2{margin-top:0;font-size:18px;}
   font-size:15px;
   line-height:1.5;
 }
-a{color:#0066ff;text-decoration:none;font-weight:bold;}
+a{
+  color:#0066ff;
+  text-decoration:none;
+  font-weight:bold;
+}
 .action-btn{
   display:inline-flex;
   align-items:center;
@@ -33,12 +40,25 @@ a{color:#0066ff;text-decoration:none;font-weight:bold;}
   border-radius:8px;
   font-size:14px;
   font-weight:bold;
+  text-decoration:none;
 }
-.action-btn img{width:18px;height:18px;}
-.back-link{display:inline-block;margin-top:10px;font-size:14px;}
-.case-image{margin-top:10px;width:100%;border-radius:8px;}
+.action-btn img{
+  width:18px;
+  height:18px;
+}
+.back-link{
+  display:inline-block;
+  margin-top:10px;
+  font-size:14px;
+}
+@media(max-width:600px){
+  body{ padding:14px; }
+  card{ font-size:14px; }
+  h2{ font-size:17px; }
+}
 </style>
 </head>
+
 <body>
 
 <script>
@@ -54,56 +74,63 @@ if(sessionStorage.getItem("operanix_auth") !== "ok"){
 <script>
 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";
 const urlParams = new URLSearchParams(window.location.search);
-const caseId = decodeURIComponent(urlParams.get("case_id")|| "").trim();
+const caseId = decodeURIComponent(urlParams.get("case_id") || "").trim();
 
-fetch(csvUrl + "&t=" + Date.now())
-.then(r => r.text())
-.then(text => {
+function parseCSVRow(row){
+  return row.match(/("([^"]|"")*"|[^,]*)(?=,|$)/g).map(v=>{
+    return v.replace(/^"|"$/g,"").trim();
+  });
+}
 
-  const rows = text.trim().split("\n").slice(1);
+fetch(csvUrl)
+.then(r=>r.text())
+.then(text=>{
+  const lines = text.trim().split("\n");
+  const headers = parseCSVRow(lines[0]);
+
+  const idx = {
+    case_id: headers.indexOf("case_id"),
+    tarikh: headers.indexOf("created_at"),
+    kategori: headers.indexOf("kategori_aduan"),
+    ringkasan: headers.indexOf("ringkasan_aduan"),
+    status: headers.indexOf("status_kes"),
+    lat: headers.indexOf("lat"),
+    lng: headers.indexOf("lng"),
+    image: headers.indexOf("image_url")
+  };
+
   let found = false;
 
-  rows.forEach(row => {
+  for(let i=1;i<lines.length;i++){
+    const cols = parseCSVRow(lines[i]);
 
-    // FIXED regex - now keeps empty columns
-    const cols = row.match(/("([^"]|"")*"|[^,]*)(?=,|$)/g);
-
-    const clean = v => v ? v.replace(/^"|"$/g,"").trim() : "";
-
-    if(clean(cols[0]).trim() === caseId.trim()){
-
+    if(cols[idx.case_id] === caseId){
       found = true;
 
-      const case_id   = clean(cols[0]);
-      const tarikh    = clean(cols[1]);
-      const kategori  = clean(cols[3]);
-      const ringkasan = clean(cols[4]);
-      const status    = clean(cols[5]);
-      const lat       = clean(cols[6]);
-      const lng       = clean(cols[7]);
-      const imgUrl    = clean(cols[19]);
-
+      const lat = cols[idx.lat];
+      const lng = cols[idx.lng];
       const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
-      let imageBlock = "";
-      if(imgUrl && imgUrl.startsWith("http")){
-        imageBlock = `<img class="case-image" src="${imgUrl}">`;
-      }
+      const imgUrl = cols[idx.image];
 
       document.getElementById("result").innerHTML = `
         <div class="card">
-          <b>Case ID:</b> ${case_id}<br>
-          <b>Tarikh:</b> ${tarikh}<br>
-          <b>Kategori:</b> ${kategori}<br><br>
+          <b>Case ID:</b> ${cols[idx.case_id]}<br>
+          <b>Tarikh:</b> ${cols[idx.tarikh]}<br>
+          <b>Kategori:</b> ${cols[idx.kategori]}<br>
 
           <b>Ringkasan:</b>
           <div style="margin-top:6px;white-space:pre-wrap;">
-            ${ringkasan}
+            ${cols[idx.ringkasan]}
           </div>
 
-          ${imageBlock}
+          <b>Status:</b> ${cols[idx.status]}<br>
 
-          <br><b>Status:</b> ${status}<br>
+          ${imgUrl ? `
+            <div style="margin-top:12px;">
+              <img src="${imgUrl}" style="max-width:100%;border-radius:8px;">
+            </div>
+          ` : ""}
 
           <a class="action-btn" href="${wazeLink}" target="_blank">
             <img src="../assets/waze-icon.svg">
@@ -113,8 +140,9 @@ fetch(csvUrl + "&t=" + Date.now())
 
         <a class="back-link" href="index.html">← Kembali ke Peta</a>
       `;
+      break;
     }
-  });
+  }
 
   if(!found){
     document.getElementById("result").innerHTML = "Kes tidak dijumpai";
