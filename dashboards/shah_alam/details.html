@@ -1,117 +1,144 @@
-<!DOCTYPE html>  <html>    <head>    
-<meta charset="utf-8">    
-<title>Maklumat Aduan Lengkap</title>    
-<meta name="viewport" content="width=device-width, initial-scale=1.0">    
-<style>    
-body{    
-  font-family: Arial, sans-serif;    
-  margin:0;    
-  padding:18px;    
-  background:#f4f6f8;    
-}    
-h2{    
-  margin-top:0;    
-  font-size:18px;    
-}    
-.card{    
-  background:white;    
-  border-radius:12px;    
-  padding:16px;    
-  box-shadow:0 2px 8px rgba(0,0,0,0.08);    
-  margin-bottom:14px;    
-  font-size:15px;    
-  line-height:1.5;    
-}    
-a{    
-  color:#0066ff;    
-  text-decoration:none;    
-  font-weight:bold;    
-}    
-/* Waze Button */    
-.action-btn{    
-  display:inline-flex;    
-  align-items:center;    
-  gap:8px;    
-  margin-top:12px;    
-  padding:9px 16px;    
-  background:#0066ff;    
-  color:white;    
-  border-radius:8px;    
-  font-size:14px;    
-  font-weight:bold;    
-  text-decoration:none;    
-}    
-.action-btn img{    
-  width:18px;    
-  height:18px;    
-}    
-.back-link{    
-  display:inline-block;    
-  margin-top:10px;    
-  font-size:14px;    
-}    
-/* Mobile optimization */    
-@media(max-width:600px){    
-  body{ padding:14px; }    
-  .card{ font-size:14px; }    
-  h2{ font-size:17px; }    
-  .action-btn{    
-    padding:10px 18px;    
-  }    
-}    
-</style>    
-</head>    
-<body>    
-<!-- Security Gate -->    
-<script>    
-if(sessionStorage.getItem("operanix_auth") !== "ok"){    
-  sessionStorage.setItem("operanix_redirect", window.location.href);    
-  window.location.href = "login.html";    
-}    
-</script>    
-<h2>Maklumat Aduan Lengkap</h2>    
-<div id="result">Loading...</div>    
-<script>    
-const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";    
-const urlParams = new URLSearchParams(window.location.search);    
-const caseId = urlParams.get('case_id');    
-fetch(csvUrl)    
-.then(r=>r.text())    
-.then(text=>{    
-  const rows = text.trim().split("\n").slice(1);    
-  let found = false;    
-  rows.forEach(row=>{    
-    const cols = row.match(/("([^"]|"")*"|[^,]+)(?=,|$)/g); 
-    if(cols[0].trim() === caseId.trim()){    
-      found = true;    
-      const lat = cols[6];    
-      const lng = cols[7];    
-      const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;    
-      document.getElementById('result').innerHTML = `    
-        <div class="card">    
-          <b>Case ID:</b> ${cols[0]}<br>    
-          <b>Tarikh:</b> ${cols[1]}<br>    
-          <b>Kategori:</b> ${cols[3]}<br>    
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Maklumat Aduan Lengkap</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{
+  font-family: Arial, sans-serif;
+  margin:0;
+  padding:18px;
+  background:#f4f6f8;
+}
+h2{
+  margin-top:0;
+  font-size:18px;
+}
+.card{
+  background:white;
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom:14px;
+  font-size:15px;
+  line-height:1.5;
+}
+a{
+  color:#0066ff;
+  text-decoration:none;
+  font-weight:bold;
+}
+.action-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:12px;
+  padding:9px 16px;
+  background:#0066ff;
+  color:white;
+  border-radius:8px;
+  font-size:14px;
+  font-weight:bold;
+  text-decoration:none;
+}
+.action-btn img{
+  width:18px;
+  height:18px;
+}
+.back-link{
+  display:inline-block;
+  margin-top:10px;
+  font-size:14px;
+}
+@media(max-width:600px){
+  body{ padding:14px; }
+  .card{ font-size:14px; }
+  h2{ font-size:17px; }
+  .action-btn{ padding:10px 18px; }
+}
+</style>
+</head>
+
+<body>
+
+<script>
+if(sessionStorage.getItem("operanix_auth") !== "ok"){
+  sessionStorage.setItem("operanix_redirect", window.location.href);
+  window.location.href = "login.html";
+}
+</script>
+
+<h2>Maklumat Aduan Lengkap</h2>
+<div id="result">Loading...</div>
+
+<script>
+const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";
+const urlParams = new URLSearchParams(window.location.search);
+const caseId = urlParams.get('case_id');
+
+fetch(csvUrl)
+.then(r => r.text())
+.then(text => {
+
+  const rows = text.trim().split("\n").slice(1);
+  let found = false;
+
+  rows.forEach(row => {
+
+    // === FIXED PARSING ===
+    const cols = row.split(",");
+
+    if(cols[0].trim() === caseId.trim()){
+
+      found = true;
+
+      // === FIXED MAPPING ===
+      const case_id   = cols[0];
+      const tarikh    = cols[1];
+      const kategori  = cols[3];
+      const ringkasan = cols[4];
+      const status    = cols[5];
+      const lat       = cols[6];
+      const lng       = cols[7];
+      const gambar    = cols[18]; // column 19
+
+      const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+
+      document.getElementById('result').innerHTML = `
+        <div class="card">
+          <b>Case ID:</b> ${case_id}<br>
+          <b>Tarikh:</b> ${tarikh}<br>
+          <b>Kategori:</b> ${kategori}<br>
+
           <b>Ringkasan:</b>
-            <div style="margin-top:6px;white-space:pre-wrap;">
-            ${cols[4].replace(/^"|"$/g,"")}
-            </div>
+          <div style="margin-top:6px;white-space:pre-wrap;">
+            ${ringkasan.replace(/^"|"$/g,"")}
+          </div>
 
-            <b>Status:</b> ${cols[5].replace(/^"|"$/g,"")}<br>
+          ${gambar && gambar.trim() !== "" ? `
+            <img src="${gambar}" style="margin-top:10px;max-width:100%;border-radius:8px;">
+          ` : ""}
 
-          <a class="action-btn" href="${wazeLink}" target="_blank">    
-            <img src="../assets/waze-icon.svg">    
-            Buka Waze    
-          </a>    
-        </div>    
-        <a class="back-link" href="index.html">← Kembali ke Peta</a>    
-      `;    
-    }    
-  });    
-  if(!found){    
-    document.getElementById('result').innerHTML = "Kes tidak dijumpai";    
-  }    
-});    
-</script>    
-</body>    
+          <br>
+          <b>Status:</b> ${status.replace(/^"|"$/g,"")}<br>
+
+          <a class="action-btn" href="${wazeLink}" target="_blank">
+            <img src="../assets/waze-icon.svg">
+            Buka Waze
+          </a>
+        </div>
+
+        <a class="back-link" href="index.html">← Kembali ke Peta</a>
+      `;
+    }
+  });
+
+  if(!found){
+    document.getElementById('result').innerHTML = "Kes tidak dijumpai";
+  }
+});
+</script>
+
+</body>
 </html>
