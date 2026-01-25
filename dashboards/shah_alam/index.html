@@ -170,7 +170,7 @@ async function loadBoundary(){
 
 async function loadCSV(){
   allCases = []
-  const res = await fetch(CSV_URL)
+  const res = await fetch(CSV_URL + "&t=" + Date.now())
   const text = await res.text()
   const rows = text.trim().split("\n").slice(1)
   const categorySet = new Set()
