@@ -176,7 +176,22 @@ async function loadCSV(){
   const categorySet = new Set()
 
   rows.forEach(r=>{
-    const c = r.match(/(".*?"|[^",]+)(?=,|$)/g)
+    const c = []
+let cur = ''
+let inQuotes = false
+for(let i=0;i<r.length;i++){
+  const ch = r[i]
+  if(ch === '"' ){
+    inQuotes = !inQuotes
+  } else if(ch === ',' && !inQuotes){
+    c.push(cur)
+    cur = ''
+  } else {
+    cur += ch
+  }
+}
+c.push(cur)
+
 
     const case_id   = c[0]
     const tarikh    = c[1]
