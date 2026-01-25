@@ -183,7 +183,8 @@ async function loadCSV(){
     const ringkasan= c[4]
     const lat       = parseFloat(c[6])
     const lng       = parseFloat(c[7])
-    if(isNaN(lat)||isNaN(lng)) return
+    if(c[6].trim()=="" || c[7].trim()=="")
+      return
 
     categorySet.add(kategori)
     const point = L.latLng(lat,lng)
