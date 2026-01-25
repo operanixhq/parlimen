@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Operanix Access</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin:0;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      font-family:Arial, sans-serif;
+      background:#f2f4f8;
+    }
+    .box {
+      background:white;
+      padding:30px 25px;
+      border-radius:10px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+      text-align:center;
+      width:280px;
+    }
+    h2 {
+      margin-top:0;
+      margin-bottom:15px;
+      font-size:18px;
+    }
+    input {
+      width:100%;
+      padding:8px;
+      font-size:14px;
+      border-radius:6px;
+      border:1px solid #ccc;
+      margin-bottom:12px;
+    }
+    button {
+      width:100%;
+      padding:9px;
+      background:#0066ff;
+      color:white;
+      border:none;
+      border-radius:6px;
+      font-size:14px;
+      cursor:pointer;
+    }
+    button:hover {
+      background:#004ecc;
+    }
+    .error {
+      color:red;
+      font-size:13px;
+      margin-top:8px;
+      display:none;
+    }
+    .logo {
+      font-weight:bold;
+      font-size:16px;
+      margin-bottom:8px;
+      color:#222;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <div class="logo">Operanix Dashboard</div>
+  <h2>Masukkan Access Token</h2>
+  <input type="password" id="tokenInput" placeholder="Access Token">
+  <button onclick="checkToken()">Masuk</button>
+  <div class="error" id="errorMsg">Token salah</div>
+</div>
+
+<script>
+// ====== CONFIG ======
+// Ini hash SHA256 token sebenar.
+// Contoh token sebenar nanti: "operanix-YB-2026"
+const STORED_HASH = "d6d1e0f6a0c5eaf7f04b33f0b75c83eac9a73c7a7e3f2f3e7a5c9e2b9d3f4a1"; 
+// ====================
+
+// SHA256 function
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function checkToken() {
+  const input = document.getElementById("tokenInput").value.trim();
+  const hash = await sha256(input);
+
+  if(hash === STORED_HASH) {
+    sessionStorage.setItem("operanix_auth","ok");
+    window.location.href = "index.html";
+  } else {
+    document.getElementById("errorMsg").style.display="block";
+  }
+}
+
+// Auto redirect if already logged in
+if(sessionStorage.getItem("operanix_auth")==="ok"){
+  window.location.href="index.html";
+}
+</script>
+
+</body>
+</html>
