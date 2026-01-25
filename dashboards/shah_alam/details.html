@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Maklumat Lengkap Aduan</title>
+<title>Maklumat Aduan Lengkap</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -12,12 +12,10 @@ body{
   padding:18px;
   background:#f4f6f8;
 }
-
 h2{
   margin-top:0;
   font-size:18px;
 }
-
 .card{
   background:white;
   border-radius:12px;
@@ -27,21 +25,29 @@ h2{
   font-size:15px;
   line-height:1.5;
 }
-
 a{
   color:#0066ff;
   text-decoration:none;
   font-weight:bold;
 }
 
+/* Waze Button */
 .action-btn{
-  display:inline-block;
-  margin-top:10px;
-  padding:10px 14px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:12px;
+  padding:9px 16px;
   background:#0066ff;
   color:white;
   border-radius:8px;
   font-size:14px;
+  font-weight:bold;
+  text-decoration:none;
+}
+.action-btn img{
+  width:18px;
+  height:18px;
 }
 
 .back-link{
@@ -50,17 +56,21 @@ a{
   font-size:14px;
 }
 
-/* Make full width nicely on phone */
+/* Mobile optimization */
 @media(max-width:600px){
   body{ padding:14px; }
   .card{ font-size:14px; }
   h2{ font-size:17px; }
-  .action-btn{ width:100%; text-align:center; }
+  .action-btn{
+    padding:10px 18px;
+  }
 }
 </style>
 </head>
+
 <body>
 
+<!-- Security Gate -->
 <script>
 if(sessionStorage.getItem("operanix_auth") !== "ok"){
   sessionStorage.setItem("operanix_redirect", window.location.href);
@@ -68,7 +78,7 @@ if(sessionStorage.getItem("operanix_auth") !== "ok"){
 }
 </script>
 
-<h2>Maklumat Lengkap Aduan</h2>
+<h2>Maklumat Aduan Lengkap</h2>
 <div id="result">Loading...</div>
 
 <script>
@@ -101,7 +111,10 @@ fetch(csvUrl)
           <b>Ringkasan:</b><br>${cols[4]}<br><br>
           <b>Status:</b> ${cols[5]}<br>
 
-          <a class="action-btn" href="${wazeLink}" target="_blank">🧭 Buka Waze</a>
+          <a class="action-btn" href="${wazeLink}" target="_blank">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Waze_Logo.svg">
+            Buka Waze
+          </a>
         </div>
 
         <a class="back-link" href="index.html">← Kembali ke Peta</a>
