@@ -121,7 +121,7 @@
 /* ================================
    🔒 OPERANIX AUTH GATE
 ================================ */
-if(sessionStorage.getItem("operanix_auth") !== "ok"){
+if(localStorage.getItem("operanix_auth") !== "ok"){
   window.location.href = "login.html";
 }
 
