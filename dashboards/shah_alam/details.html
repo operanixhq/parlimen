@@ -62,8 +62,8 @@ a{
 <body>
 
 <script>
-if(sessionStorage.getItem("operanix_auth") !== "ok"){
-  sessionStorage.setItem("operanix_redirect", window.location.href);
+if(localStorage.getItem("operanix_auth") !== "ok"){
+  localStorage.setItem("operanix_redirect", window.location.href);
   window.location.href = "login.html";
 }
 </script>
