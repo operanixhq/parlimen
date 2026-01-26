@@ -101,12 +101,12 @@ async function login(){
   const hashed = await sha256(input);
 
  if(hashed === VALID_HASH){
-    sessionStorage.setItem("operanix_auth","ok");
+    localStorage.setItem("operanix_auth","ok");
 
     // Check jika ada halaman asal yang diminta sebelum login
-    const redirectUrl = sessionStorage.getItem("operanix_redirect");
+    const redirectUrl = localStorage.getItem("operanix_redirect");
     if(redirectUrl){
-        sessionStorage.removeItem("operanix_redirect");
+        localStorage.removeItem("operanix_redirect");
         window.location.href = redirectUrl;
     } else {
         window.location.href = "index.html";
