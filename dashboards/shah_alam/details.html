@@ -63,7 +63,6 @@ a{
 </style>
 </head>
 <body>
-
 <script>
 if(localStorage.getItem("operanix_auth") !== "ok"){
   localStorage.setItem("operanix_redirect", window.location.href);
@@ -75,14 +74,13 @@ if(localStorage.getItem("operanix_auth") !== "ok"){
 <div id="result">Loading...</div>
 
 <script>
-const apiUrl = "https://script.google.com/macros/s/AKfycbzNoivsmUm18JtTC4S_f_arsl9zaH1IpwmxwTbxpDS8rb7txwvMQ_kR-nBFfpW8b57axw/exec"; 
+const apiUrl = "https://script.google.com/macros/s/AKfycby89rBGaqZSh8p8tWPDqg4qeIKbmLDyz1BMpwN8x4LxRdn0ysVs5k4HG52Ara4dzj0BzA/exec"; 
 const urlParams = new URLSearchParams(window.location.search);
 const caseId = urlParams.get("case_id");
 
 // === DATE FORMAT FUNCTION ===
 function formatMalaysiaDate(timestamp){
   const date = new Date(timestamp);
-
   const options = {
     timeZone: "Asia/Kuala_Lumpur",
     year: "numeric",
@@ -92,16 +90,13 @@ function formatMalaysiaDate(timestamp){
     minute: "2-digit",
     hour12: true
   };
-
   const parts = new Intl.DateTimeFormat("en-GB", options).formatToParts(date);
-
   const d = parts.find(p=>p.type==="day").value;
   const m = parts.find(p=>p.type==="month").value;
   const y = parts.find(p=>p.type==="year").value;
   const h = parts.find(p=>p.type==="hour").value;
   const min = parts.find(p=>p.type==="minute").value;
   const ampm = parts.find(p=>p.type==="dayPeriod").value.toUpperCase();
-
   return `${d}-${m}-${y} . ${h}:${min} ${ampm}`;
 }
 
@@ -118,7 +113,6 @@ fetch(apiUrl)
     const lng = found.lng;
     const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
-    // format date
     const formattedDate = formatMalaysiaDate(found.created_at);
 
     let imageHtml = "";
@@ -131,16 +125,12 @@ fetch(apiUrl)
       `;
     }
 
-    // phone + whatsapp
     let phoneDisplay = "-";
     let waButton = "";
-
     if(found.no_telefon !== undefined && found.no_telefon !== null && found.no_telefon !== ""){
       const phoneStr = String(found.no_telefon);
       const cleanPhone = phoneStr.replace(/[^0-9]/g,'');
-
       phoneDisplay = `<a href="tel:${cleanPhone}">${phoneStr}</a>`;
-
       waButton = `
         <a class="action-btn whatsapp-btn"
            href="https://wa.me/${cleanPhone}" target="_blank">
@@ -148,6 +138,9 @@ fetch(apiUrl)
         </a>
       `;
     }
+
+    // === NEW AI CONFIDENCE LINE ONLY ===
+    const aiConfidence = found.AI_confidence || found.ai_confidence || "-";
 
     document.getElementById("result").innerHTML = `
       <div class="card">
@@ -167,6 +160,7 @@ fetch(apiUrl)
         </div>
 
         <b>Status Kes:</b> ${found.status_kes}<br>
+        <b>AI Confidence:</b> ${aiConfidence}<br>
 
         ${imageHtml}
 
