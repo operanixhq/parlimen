@@ -4,13 +4,17 @@
   <title>Operanix | Peta Aduan Shah Alam</title>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <!-- Heatmap -->
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
   <!-- Point in Polygon -->
   <script src="https://unpkg.com/leaflet-pip/leaflet-pip.min.js"></script>
+
   <!-- Date Range Picker -->
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -19,18 +23,26 @@
     body { margin:0; font-family: Arial, sans-serif; }
     #map { width:100%; height:100vh; }
 
-    .pin-red, .pin-orange, .pin-green, .pin-white {
+    .pin-red, .pin-orange, .pin-green, .pin-blue, .pin-yellow, .pin-white {
       width:14px; height:14px;
       border-radius:50%;
       position:relative;
       animation:pulse 1.8s infinite;
     }
 
+    /* urgency tinggi */
     .pin-red { background:#e60000; }
-    .pin-orange { background:#ff7a00; }
+
+    /* urgency sederhana */
+    .pin-yellow { background:#ffcc00; }
+
+    /* urgency rendah */
+    .pin-blue { background:#0066ff; }
+
+    /* status selesai */
     .pin-green { background:#00aa55; }
 
-    /* pin luar kawasan */
+    /* luar kawasan */
     .pin-white {
       background:#ffffff;
       border:2px solid #666;
@@ -54,6 +66,7 @@
       font-size:13px;
       width:200px;
     }
+
     #filterBox input, #filterBox select {
       width:100%;
       margin-top:4px;
@@ -77,6 +90,7 @@
       animation:blink 1s infinite;
       z-index:999;
     }
+
     @keyframes blink {
       0%,100% { opacity:1; }
       50% { opacity:0.4; }
@@ -118,16 +132,9 @@
 <div id="powered">Powered by Operanix</div>
 
 <script>
-/* ================================
-   🔒 OPERANIX AUTH GATE
-================================ */
 if(localStorage.getItem("operanix_auth") !== "ok"){
   window.location.href = "login.html";
 }
-
-/* ================================
-   MAIN DASHBOARD
-================================ */
 
 const JSON_URL = "https://script.google.com/macros/s/AKfycbxNvaB7xlf7ZkisIpiR4s1rrb4j37KypWkFtZ-AnN46q2keiu3cc5_8YX6l3dtjO6864g/exec"
 const GEOJSON_URL = "P108_shah_alam.geojson"
@@ -169,28 +176,24 @@ async function loadBoundary(){
   map.fitBounds(boundaryLayer.getBounds())
 }
 
-/* ================================
-   LOAD JSON DATA
-================================ */
 async function loadJSON(){
   allCases = []
   const res = await fetch(JSON_URL)
   const data = await res.json()
-
   const categorySet = new Set()
 
   data.forEach(item=>{
-    const case_id   = item.case_id
-    const tarikh    = item.created_at.slice(0,10)
-    const kategori  = item.kategori_aduan
-    const ringkasan= item.ringkasan_aduan
-    const lat       = parseFloat(item.lat)
-    const lng       = parseFloat(item.lng)
-    const status    = item.status_kes
-    const image     = item.image_url
+    const case_id    = item.case_id
+    const tarikh     = item.created_at.slice(0,10)
+    const kategori   = item.kategori_aduan
+    const ringkasan = item.ringkasan_aduan
+    const lat        = parseFloat(item.lat)
+    const lng        = parseFloat(item.lng)
+    const status     = item.status_kes
+    const urgency    = item.urgency   // <-- pastikan field ini ada
+    const image      = item.image_url
 
     if(isNaN(lat)||isNaN(lng)) return
-
     categorySet.add(kategori)
 
     const point = L.latLng(lat,lng)
@@ -198,7 +201,7 @@ async function loadJSON(){
 
     allCases.push({
       case_id, tarikh, kategori, ringkasan,
-      lat, lng, inside, status, image
+      lat, lng, inside, status, urgency, image
     })
   })
 
@@ -212,9 +215,6 @@ async function loadJSON(){
   })
 }
 
-/* ================================
-   RENDER MAP
-================================ */
 function renderData(){
   markerLayer.clearLayers()
   if(heatLayer) map.removeLayer(heatLayer)
@@ -239,12 +239,19 @@ function renderData(){
 
   filtered.forEach(c=>{
 
-    // warna ikut status
-    let pinClass = "pin-red"
-    if(c.status === "dalam tindakan") pinClass = "pin-orange"
-    if(c.status === "selesai") pinClass = "pin-green"
+    let pinClass = "pin-blue" // default rendah
 
-    // override luar kawasan → putih
+    // urgency mapping
+    if(c.urgency === "rendah") pinClass = "pin-blue"
+    if(c.urgency === "sederhana") pinClass = "pin-yellow"
+    if(c.urgency === "tinggi") pinClass = "pin-red"
+
+    // status selesai override
+    if(c.status === "selesai") {
+      pinClass = "pin-green"
+    }
+
+    // luar kawasan override semua
     if(!c.inside){
       pinClass = "pin-white"
     }
@@ -280,9 +287,6 @@ function renderData(){
 document.getElementById("categoryFilter").addEventListener("change",renderData)
 document.getElementById("areaFilter").addEventListener("change",renderData)
 
-/* ================================
-   INIT
-================================ */
 async function init(){
   await loadBoundary()
   await loadJSON()
