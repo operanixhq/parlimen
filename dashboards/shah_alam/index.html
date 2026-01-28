@@ -23,22 +23,15 @@
     body { margin:0; font-family: Arial, sans-serif; }
     #map { width:100%; height:100vh; }
 
-    .pin-red, .pin-green, .pin-blue, .pin-yellow, .pin-white {
-      width:14px; height:14px;
-      border-radius:50%;
-      position:relative;
-      animation:pulse 1.8s infinite;
+    .pin-red,.pin-green,.pin-blue,.pin-yellow,.pin-white{
+      width:14px;height:14px;border-radius:50%;
+      position:relative;animation:pulse 1.8s infinite;
     }
-
-    .pin-red { background:#e60000; }      /* urgency tinggi */
-    .pin-yellow { background:#ffcc00; }   /* urgency sederhana */
-    .pin-blue { background:#0066ff; }     /* urgency rendah */
-    .pin-green { background:#00aa55; }    /* status selesai */
-
-    .pin-white {
-      background:#ffffff;
-      border:2px solid #666;
-    }
+    .pin-red{background:#e60000;}
+    .pin-yellow{background:#ffcc00;}
+    .pin-blue{background:#0066ff;}
+    .pin-green{background:#00aa55;}
+    .pin-white{background:#fff;border:2px solid #666;}
 
     @keyframes pulse {
       0% { box-shadow:0 0 0 0 rgba(0,0,0,0.4); }
@@ -46,50 +39,37 @@
       100% { box-shadow:0 0 0 0 rgba(0,0,0,0); }
     }
 
-    #filterBox {
-      position:absolute;
-      top:10px;
-      right:10px;
-      background:white;
-      padding:8px;
-      border-radius:6px;
+    #filterBox{
+      position:absolute;top:10px;right:10px;
+      background:white;padding:8px;border-radius:6px;
       box-shadow:0 0 6px rgba(0,0,0,0.2);
-      z-index:999;
-      font-size:13px;
-      width:200px;
+      z-index:999;font-size:13px;width:200px;
     }
 
-    #filterBox input, #filterBox select {
-      width:100%;
-      margin-top:4px;
-      margin-bottom:6px;
-      font-size:13px;
-      padding:4px;
-      border-radius:4px;
-      border:1px solid #ccc;
+    #filterBox input,#filterBox select{
+      width:100%;margin-top:4px;margin-bottom:6px;
+      font-size:13px;padding:4px;border-radius:4px;border:1px solid #ccc;
     }
 
-    #liveBadge {
-      position:absolute;
-      bottom:12px;
-      right:12px;
-      background:#e60000;
-      color:white;
-      padding:6px 14px;
-      border-radius:18px;
-      font-weight:bold;
-      font-size:13px;
-      animation:blink 1s infinite;
-      z-index:999;
+    #liveBadge{
+      position:absolute;bottom:12px;right:12px;
+      background:#e60000;color:white;padding:6px 14px;
+      border-radius:18px;font-weight:bold;font-size:13px;
+      animation:blink 1s infinite;z-index:999;
     }
 
     @keyframes blink {
-      0%,100% { opacity:1; }
-      50% { opacity:0.4; }
+      0%,100%{opacity:1;}50%{opacity:0.4;}
+    }
+
+    #powered{
+      position:absolute;bottom:12px;left:12px;
+      background:#111;color:white;padding:6px 10px;
+      border-radius:6px;font-size:12px;z-index:999;
     }
 
     /* ===== Legend Box ===== */
-    #legendBox {
+    #legendBox{
       position:absolute;
       bottom:50px;
       left:12px;
@@ -100,56 +80,46 @@
       font-size:12px;
       z-index:999;
       line-height:1.6;
-      min-width:140px;
     }
 
-    .legend-item {
-      display:flex;
-      align-items:center;
-      gap:6px;
-      margin-bottom:3px;
+    .legend-item{
+      display:flex;align-items:center;gap:6px;margin-bottom:3px;
     }
-
-    .legend-dot {
-      width:10px;
-      height:10px;
-      border-radius:50%;
-      flex-shrink:0;
+    .legend-dot{
+      width:10px;height:10px;border-radius:50%;
     }
+    .legend-blue{background:#0066ff;}
+    .legend-yellow{background:#ffcc00;}
+    .legend-red{background:#e60000;}
+    .legend-green{background:#00aa55;}
+    .legend-white{background:#fff;border:1px solid #666;}
 
-    .legend-blue { background:#0066ff; }
-    .legend-yellow { background:#ffcc00; }
-    .legend-red { background:#e60000; }
-    .legend-green { background:#00aa55; }
-    .legend-white {
-      background:#ffffff;
-      border:1px solid #666;
-    }
-
-    /* mobile friendly */
-    @media (max-width:600px){
-      #legendBox{
-        font-size:11px;
-        padding:6px 8px;
-        bottom:60px;
-      }
-    }
-
-    #powered {
+    /* ===== Legend Toggle Button ===== */
+    #legendToggle{
       position:absolute;
-      bottom:12px;
+      bottom:50px;
       left:12px;
-      background:#111;
+      background:#0066ff;
       color:white;
       padding:6px 10px;
       border-radius:6px;
       font-size:12px;
-      z-index:999;
+      font-weight:bold;
+      z-index:1000;
+      cursor:pointer;
+      display:none;
+    }
+
+    /* Mobile behaviour */
+    @media(max-width:600px){
+      #legendBox{display:none;}
+      #legendToggle{display:block;}
     }
   </style>
 </head>
 
 <body>
+
 <div id="filterBox">
   <b>Filter</b><br><br>
   Tarikh<br>
@@ -160,7 +130,6 @@
   </select>
   Kawasan<br>
   <select id="areaFilter">
-    <option value="">Semua kawasan</option>
     <option value="inside">Dalam kawasan</option>
     <option value="outside">Luar kawasan</option>
   </select>
@@ -169,19 +138,34 @@
 <div id="map"></div>
 <div id="liveBadge">● LIVE</div>
 
-<!-- ===== Legend HTML ===== -->
+<!-- Toggle Button (mobile) -->
+<div id="legendToggle" onclick="toggleLegend()">Legend</div>
+
+<!-- Legend Box -->
 <div id="legendBox">
-  <b>Status Aduan</b><br>
-  <div class="legend-item"><div class="legend-dot legend-blue"></div> Urgency Rendah</div>
-  <div class="legend-item"><div class="legend-dot legend-yellow"></div> Urgency Sederhana</div>
-  <div class="legend-item"><div class="legend-dot legend-red"></div> Urgency Tinggi</div>
-  <div class="legend-item"><div class="legend-dot legend-green"></div> Kes Selesai</div>
+  <b>Status Aduan</b>
+  <div class="legend-item"><div class="legend-dot legend-blue"></div> Rendah</div>
+  <div class="legend-item"><div class="legend-dot legend-yellow"></div> Sederhana</div>
+  <div class="legend-item"><div class="legend-dot legend-red"></div> Tinggi</div>
+  <div class="legend-item"><div class="legend-dot legend-green"></div> Selesai</div>
   <div class="legend-item"><div class="legend-dot legend-white"></div> Luar Kawasan</div>
 </div>
 
 <div id="powered">Powered by Operanix</div>
 
 <script>
+/* ===== Legend Toggle Logic ===== */
+function toggleLegend(){
+  const box = document.getElementById("legendBox")
+  if(box.style.display === "none" || box.style.display === ""){
+    box.style.display = "block"
+  } else {
+    box.style.display = "none"
+  }
+}
+
+/* ===== existing dashboard code continues below ===== */
+
 if(localStorage.getItem("operanix_auth") !== "ok"){
   window.location.href = "login.html";
 }
@@ -190,78 +174,49 @@ const JSON_URL = "https://script.google.com/macros/s/AKfycbw1PXgE7dZnWKaO1mUDJ8F
 const GEOJSON_URL = "P108_shah_alam.geojson"
 
 const map = L.map('map').setView([3.0738, 101.5183], 12)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map)
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  maxZoom:18
-}).addTo(map)
-
-let boundaryLayer
-let allCases = []
-let heatLayer
+let boundaryLayer, allCases=[], heatLayer
 let markerLayer = L.layerGroup().addTo(map)
-let selectedStart = null
-let selectedEnd = null
+let selectedStart=null, selectedEnd=null
 
-flatpickr("#dateRange",{
-  mode:"range",
-  dateFormat:"Y-m-d",
-  onChange:function(selectedDates){
-    if(selectedDates.length===2){
-      selectedStart = selectedDates[0].toISOString().slice(0,10)
-      selectedEnd   = selectedDates[1].toISOString().slice(0,10)
-    } else {
-      selectedStart = null
-      selectedEnd = null
-    }
+flatpickr("#dateRange",{mode:"range",dateFormat:"Y-m-d",
+  onChange:function(d){
+    if(d.length===2){
+      selectedStart=d[0].toISOString().slice(0,10)
+      selectedEnd=d[1].toISOString().slice(0,10)
+    }else{selectedStart=null;selectedEnd=null}
     renderData()
   }
 })
 
 async function loadBoundary(){
-  const res = await fetch(GEOJSON_URL)
-  const geo = await res.json()
-  boundaryLayer = L.geoJSON(geo,{
-    style:{color:"#0044cc",weight:3,fillOpacity:0}
-  }).addTo(map)
+  const r=await fetch(GEOJSON_URL)
+  const g=await r.json()
+  boundaryLayer=L.geoJSON(g,{style:{color:"#0044cc",weight:3,fillOpacity:0}}).addTo(map)
   map.fitBounds(boundaryLayer.getBounds())
 }
 
 async function loadJSON(){
-  allCases = []
-  const res = await fetch(JSON_URL)
-  const data = await res.json()
-  const categorySet = new Set()
-
+  allCases=[]
+  const r=await fetch(JSON_URL)
+  const data=await r.json()
   data.forEach(item=>{
-    const case_id    = item.case_id
-    const tarikh     = item.created_at.slice(0,10)
-    const kategori   = item.kategori_aduan
-    const ringkasan = item.ringkasan_aduan
-    const lat        = parseFloat(item.lat)
-    const lng        = parseFloat(item.lng)
-    const status     = item.status_kes
-    const urgency    = item.urgency
-    const image      = item.image_url
-
+    const lat=parseFloat(item.lat)
+    const lng=parseFloat(item.lng)
     if(isNaN(lat)||isNaN(lng)) return
-    categorySet.add(kategori)
-
-    const point = L.latLng(lat,lng)
-    const inside = leafletPip.pointInLayer(point, boundaryLayer).length > 0
-
+    const point=L.latLng(lat,lng)
+    const inside=leafletPip.pointInLayer(point,boundaryLayer).length>0
     allCases.push({
-      case_id, tarikh, kategori, ringkasan,
-      lat, lng, inside, status, urgency, image
+      case_id:item.case_id,
+      tarikh:item.created_at.slice(0,10),
+      kategori:item.kategori_aduan,
+      ringkasan:item.ringkasan_aduan,
+      status:item.status_kes,
+      urgency:item.urgency,
+      image:item.image_url,
+      lat,lng,inside
     })
-  })
-
-  const catSelect = document.getElementById("categoryFilter")
-  catSelect.innerHTML = '<option value="">Semua</option>'
-  categorySet.forEach(k=>{
-    const opt = document.createElement("option")
-    opt.value = k
-    opt.textContent = k
-    catSelect.appendChild(opt)
   })
 }
 
@@ -269,77 +224,33 @@ function renderData(){
   markerLayer.clearLayers()
   if(heatLayer) map.removeLayer(heatLayer)
 
-  const catVal   = document.getElementById("categoryFilter").value
-  const areaVal = document.getElementById("areaFilter").value
-
-  const filtered = allCases.filter(c=>{
-    let pass = true
-    if(selectedStart && c.tarikh < selectedStart) pass = false
-    if(selectedEnd && c.tarikh > selectedEnd) pass = false
-    if(catVal && c.kategori !== catVal) pass = false
-    if(areaVal==="inside" && !c.inside) pass = false
-    if(areaVal==="outside" && c.inside) pass = false
-    return pass
+  const filtered=allCases.filter(c=>{
+    if(selectedStart && c.tarikh<selectedStart) return false
+    if(selectedEnd && c.tarikh>selectedEnd) return false
+    return true
   })
 
-  const heatPoints = filtered.map(c=>[c.lat,c.lng,1])
-  heatLayer = L.heatLayer(heatPoints,{
-    radius:40, blur:25, minOpacity:0.4
-  }).addTo(map)
+  heatLayer=L.heatLayer(filtered.map(c=>[c.lat,c.lng,1]),{radius:40,blur:25}).addTo(map)
 
   filtered.forEach(c=>{
+    let pin="pin-blue"
+    if(c.urgency==="sederhana") pin="pin-yellow"
+    if(c.urgency==="tinggi") pin="pin-red"
+    if(c.status==="selesai") pin="pin-green"
+    if(!c.inside) pin="pin-white"
 
-    let pinClass = "pin-blue"
-
-    if(c.urgency === "rendah") pinClass = "pin-blue"
-    if(c.urgency === "sederhana") pinClass = "pin-yellow"
-    if(c.urgency === "tinggi") pinClass = "pin-red"
-
-    if(c.status === "selesai") pinClass = "pin-green"
-
-    if(!c.inside) pinClass = "pin-white"
-
-    const icon = L.divIcon({
-      className:"",
-      html:`<div class="${pinClass}"></div>`,
-      iconSize:[14,14],
-      iconAnchor:[7,7]
-    })
-
-    const marker = L.marker([c.lat,c.lng],{icon}).addTo(markerLayer)
-
-    let imgHtml = ""
-    if(c.image){
-      imgHtml = `<img src="${c.image}" style="width:100%;border-radius:8px;margin-top:6px;">`
-    }
-
-    const popupHtml = `
-      <div style="font-size:13px">
-        <b>${c.kategori}</b><br>
-        ${c.ringkasan}<br>
-        ${imgHtml}<br>
-        <a href="details.html?case_id=${encodeURIComponent(c.case_id)}" target="_blank">
-          Lihat detail →
-        </a>
-      </div>
-    `
-    marker.bindPopup(popupHtml)
+    const icon=L.divIcon({html:`<div class="${pin}"></div>`,iconSize:[14,14],iconAnchor:[7,7]})
+    L.marker([c.lat,c.lng],{icon}).addTo(markerLayer)
+      .bindPopup(`<b>${c.kategori}</b><br>${c.ringkasan}`)
   })
 }
-
-document.getElementById("categoryFilter").addEventListener("change",renderData)
-document.getElementById("areaFilter").addEventListener("change",renderData)
 
 async function init(){
   await loadBoundary()
   await loadJSON()
   renderData()
-  setInterval(async ()=>{
-    await loadJSON()
-    renderData()
-  },30000)
+  setInterval(async()=>{await loadJSON();renderData()},30000)
 }
-
 init()
 </script>
 </body>
