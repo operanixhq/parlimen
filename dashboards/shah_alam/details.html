@@ -53,7 +53,7 @@ a{
 }
 .whatsapp-btn{
   background:#25D366;
-  margin-left:6px;
+  margin-left:8px;
 }
 @media(max-width:600px){
   body{ padding:14px; }
@@ -82,10 +82,7 @@ const caseId = urlParams.get("case_id");
 fetch(apiUrl)
   .then(res => res.json())
   .then(data => {
-
-    // Fix utama: samakan jenis data case_id
-    let found = data.find(item => String(item.case_id) === String(caseId));
-
+    let found = data.find(item => item.case_id === caseId);
     if(!found){
       document.getElementById("result").innerHTML = "Kes tidak dijumpai";
       return;
@@ -95,7 +92,6 @@ fetch(apiUrl)
     const lng = found.lng;
     const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
-    // Image
     let imageHtml = "";
     if(found.image_url && found.image_url !== ""){
       imageHtml = `
@@ -106,26 +102,19 @@ fetch(apiUrl)
       `;
     }
 
-    // Phone + Call + WhatsApp
+    // === FIX PHONE TYPE ===
     let phoneDisplay = "-";
     let waButton = "";
 
-    if(found.no_telefon && found.no_telefon !== ""){
-      let cleanPhone = found.no_telefon.replace(/[^0-9]/g,'');
+    if(found.no_telefon !== undefined && found.no_telefon !== null && found.no_telefon !== ""){
+      const phoneStr = String(found.no_telefon);
+      const cleanPhone = phoneStr.replace(/[^0-9]/g,'');
 
-      // Convert leading 0 to Malaysia country code 60
-      if(cleanPhone.startsWith("0")){
-        cleanPhone = "60" + cleanPhone.substring(1);
-      }
-
-      phoneDisplay = `
-        <a href="tel:+${cleanPhone}">${found.no_telefon}</a>
-      `;
+      phoneDisplay = `<a href="tel:${cleanPhone}">${phoneStr}</a>`;
 
       waButton = `
         <a class="action-btn whatsapp-btn"
-           href="https://wa.me/${cleanPhone}"
-           target="_blank">
+           href="https://wa.me/${cleanPhone}" target="_blank">
            WhatsApp
         </a>
       `;
@@ -163,7 +152,7 @@ fetch(apiUrl)
   })
   .catch(err => {
     document.getElementById("result").innerHTML = "Ralat load data";
-    console.error("FETCH ERROR:", err);
+    console.error(err);
   });
 </script>
 
