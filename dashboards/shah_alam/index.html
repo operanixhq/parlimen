@@ -30,10 +30,10 @@
       animation:pulse 1.8s infinite;
     }
 
-    .pin-red { background:#e60000; }
-    .pin-yellow { background:#ffcc00; }
-    .pin-blue { background:#0066ff; }
-    .pin-green { background:#00aa55; }
+    .pin-red { background:#e60000; }      /* urgency tinggi */
+    .pin-yellow { background:#ffcc00; }   /* urgency sederhana */
+    .pin-blue { background:#0066ff; }     /* urgency rendah */
+    .pin-green { background:#00aa55; }    /* status selesai */
 
     .pin-white {
       background:#ffffff;
@@ -88,20 +88,19 @@
       50% { opacity:0.4; }
     }
 
-    /* ===== Legend Box repositioned ===== */
+    /* ===== Legend Box ===== */
     #legendBox {
       position:absolute;
-      bottom:12px;
-      left:50%;
-      transform:translateX(-35%);
+      bottom:50px;
+      left:12px;
       background:white;
-      padding:8px 12px;
+      padding:8px 10px;
       border-radius:8px;
       box-shadow:0 0 6px rgba(0,0,0,0.25);
       font-size:12px;
       z-index:999;
       line-height:1.6;
-      min-width:150px;
+      min-width:140px;
     }
 
     .legend-item {
@@ -122,15 +121,17 @@
     .legend-yellow { background:#ffcc00; }
     .legend-red { background:#e60000; }
     .legend-green { background:#00aa55; }
-    .legend-white { background:#ffffff; border:1px solid #666; }
+    .legend-white {
+      background:#ffffff;
+      border:1px solid #666;
+    }
 
-    /* mobile fine tune */
+    /* mobile friendly */
     @media (max-width:600px){
       #legendBox{
         font-size:11px;
         padding:6px 8px;
-        transform:translateX(-50%);
-        left:50%;
+        bottom:60px;
       }
     }
 
@@ -168,7 +169,7 @@
 <div id="map"></div>
 <div id="liveBadge">● LIVE</div>
 
-<!-- Legend -->
+<!-- ===== Legend HTML ===== -->
 <div id="legendBox">
   <b>Status Aduan</b><br>
   <div class="legend-item"><div class="legend-dot legend-blue"></div> Rendah</div>
@@ -181,17 +182,18 @@
 <div id="powered">Powered by Operanix</div>
 
 <script>
-/* ===== existing logic unchanged ===== */
 if(localStorage.getItem("operanix_auth") !== "ok"){
   window.location.href = "login.html";
 }
 
-const JSON_URL = "https://script.google.com/macros/s/AKfycbxNvaB7xlf7ZkisIpiR4s1rrb4j37KypWkFtZ-AnN46q2keiu3cc5_8YX6l3dtjO6864g/exec"
+const JSON_URL = "https://script.google.com/macros/s/AKfycbw1PXgE7dZnWKaO1mUDJ8FzGdldQq1e99ljhmDHgNApPS6ULqaOW5HxeYTlITnx1cSLRA/exec"
 const GEOJSON_URL = "P108_shah_alam.geojson"
 
 const map = L.map('map').setView([3.0738, 101.5183], 12)
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:18
+}).addTo(map)
 
 let boundaryLayer
 let allCases = []
@@ -200,7 +202,9 @@ let markerLayer = L.layerGroup().addTo(map)
 let selectedStart = null
 let selectedEnd = null
 
-flatpickr("#dateRange",{mode:"range",dateFormat:"Y-m-d",
+flatpickr("#dateRange",{
+  mode:"range",
+  dateFormat:"Y-m-d",
   onChange:function(selectedDates){
     if(selectedDates.length===2){
       selectedStart = selectedDates[0].toISOString().slice(0,10)
@@ -216,7 +220,9 @@ flatpickr("#dateRange",{mode:"range",dateFormat:"Y-m-d",
 async function loadBoundary(){
   const res = await fetch(GEOJSON_URL)
   const geo = await res.json()
-  boundaryLayer = L.geoJSON(geo,{style:{color:"#0044cc",weight:3,fillOpacity:0}}).addTo(map)
+  boundaryLayer = L.geoJSON(geo,{
+    style:{color:"#0044cc",weight:3,fillOpacity:0}
+  }).addTo(map)
   map.fitBounds(boundaryLayer.getBounds())
 }
 
@@ -224,24 +230,38 @@ async function loadJSON(){
   allCases = []
   const res = await fetch(JSON_URL)
   const data = await res.json()
+  const categorySet = new Set()
 
   data.forEach(item=>{
-    const lat = parseFloat(item.lat)
-    const lng = parseFloat(item.lng)
-    if(isNaN(lat)||isNaN(lng)) return
+    const case_id    = item.case_id
+    const tarikh     = item.created_at.slice(0,10)
+    const kategori   = item.kategori_aduan
+    const ringkasan = item.ringkasan_aduan
+    const lat        = parseFloat(item.lat)
+    const lng        = parseFloat(item.lng)
+    const status     = item.status_kes
+    const urgency    = item.urgency
+    const image      = item.image_url
 
-    const inside = leafletPip.pointInLayer(L.latLng(lat,lng), boundaryLayer).length>0
+    if(isNaN(lat)||isNaN(lng)) return
+    categorySet.add(kategori)
+
+    const point = L.latLng(lat,lng)
+    const inside = leafletPip.pointInLayer(point, boundaryLayer).length > 0
 
     allCases.push({
-      lat,lng,
-      kategori:item.kategori_aduan,
-      ringkasan:item.ringkasan_aduan,
-      status:item.status_kes,
-      urgency:item.urgency,
-      inside,
-      image:item.image_url,
-      case_id:item.case_id
+      case_id, tarikh, kategori, ringkasan,
+      lat, lng, inside, status, urgency, image
     })
+  })
+
+  const catSelect = document.getElementById("categoryFilter")
+  catSelect.innerHTML = '<option value="">Semua</option>'
+  categorySet.forEach(k=>{
+    const opt = document.createElement("option")
+    opt.value = k
+    opt.textContent = k
+    catSelect.appendChild(opt)
   })
 }
 
@@ -249,26 +269,77 @@ function renderData(){
   markerLayer.clearLayers()
   if(heatLayer) map.removeLayer(heatLayer)
 
-  heatLayer = L.heatLayer(allCases.map(c=>[c.lat,c.lng,1]),{radius:40,blur:25,minOpacity:0.4}).addTo(map)
+  const catVal   = document.getElementById("categoryFilter").value
+  const areaVal = document.getElementById("areaFilter").value
 
-  allCases.forEach(c=>{
-    let pinClass="pin-blue"
-    if(c.urgency==="sederhana") pinClass="pin-yellow"
-    if(c.urgency==="tinggi") pinClass="pin-red"
-    if(c.status==="selesai") pinClass="pin-green"
-    if(!c.inside) pinClass="pin-white"
+  const filtered = allCases.filter(c=>{
+    let pass = true
+    if(selectedStart && c.tarikh < selectedStart) pass = false
+    if(selectedEnd && c.tarikh > selectedEnd) pass = false
+    if(catVal && c.kategori !== catVal) pass = false
+    if(areaVal==="inside" && !c.inside) pass = false
+    if(areaVal==="outside" && c.inside) pass = false
+    return pass
+  })
 
-    const icon=L.divIcon({className:"",html:`<div class="${pinClass}"></div>`,iconSize:[14,14],iconAnchor:[7,7]})
-    L.marker([c.lat,c.lng],{icon}).addTo(markerLayer)
+  const heatPoints = filtered.map(c=>[c.lat,c.lng,1])
+  heatLayer = L.heatLayer(heatPoints,{
+    radius:40, blur:25, minOpacity:0.4
+  }).addTo(map)
+
+  filtered.forEach(c=>{
+
+    let pinClass = "pin-blue"
+
+    if(c.urgency === "rendah") pinClass = "pin-blue"
+    if(c.urgency === "sederhana") pinClass = "pin-yellow"
+    if(c.urgency === "tinggi") pinClass = "pin-red"
+
+    if(c.status === "selesai") pinClass = "pin-green"
+
+    if(!c.inside) pinClass = "pin-white"
+
+    const icon = L.divIcon({
+      className:"",
+      html:`<div class="${pinClass}"></div>`,
+      iconSize:[14,14],
+      iconAnchor:[7,7]
+    })
+
+    const marker = L.marker([c.lat,c.lng],{icon}).addTo(markerLayer)
+
+    let imgHtml = ""
+    if(c.image){
+      imgHtml = `<img src="${c.image}" style="width:100%;border-radius:8px;margin-top:6px;">`
+    }
+
+    const popupHtml = `
+      <div style="font-size:13px">
+        <b>${c.kategori}</b><br>
+        ${c.ringkasan}<br>
+        ${imgHtml}<br>
+        <a href="details.html?case_id=${encodeURIComponent(c.case_id)}" target="_blank">
+          Lihat detail →
+        </a>
+      </div>
+    `
+    marker.bindPopup(popupHtml)
   })
 }
+
+document.getElementById("categoryFilter").addEventListener("change",renderData)
+document.getElementById("areaFilter").addEventListener("change",renderData)
 
 async function init(){
   await loadBoundary()
   await loadJSON()
   renderData()
-  setInterval(async ()=>{await loadJSON();renderData()},30000)
+  setInterval(async ()=>{
+    await loadJSON()
+    renderData()
+  },30000)
 }
+
 init()
 </script>
 </body>
