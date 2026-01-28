@@ -58,7 +58,6 @@ a{
 }
 </style>
 </head>
-
 <body>
 
 <script>
@@ -71,10 +70,8 @@ if(localStorage.getItem("operanix_auth") !== "ok"){
 <h2>Maklumat Aduan Lengkap</h2>
 <div id="result">Loading...</div>
 
-  <script>
+<script>
 const apiUrl = "https://script.google.com/macros/s/AKfycbzNoivsmUm18JtTC4S_f_arsl9zaH1IpwmxwTbxpDS8rb7txwvMQ_kR-nBFfpW8b57axw/exec"; 
-
-
 const urlParams = new URLSearchParams(window.location.search);
 const caseId = urlParams.get("case_id");
 
@@ -82,7 +79,6 @@ fetch(apiUrl)
   .then(res => res.json())
   .then(data => {
     let found = data.find(item => item.case_id === caseId);
-
     if(!found){
       document.getElementById("result").innerHTML = "Kes tidak dijumpai";
       return;
@@ -92,7 +88,6 @@ fetch(apiUrl)
     const lng = found.lng;
     const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
-    // optional image
     let imageHtml = "";
     if(found.image_url && found.image_url !== ""){
       imageHtml = `
@@ -107,6 +102,12 @@ fetch(apiUrl)
       <div class="card">
         <b>Case ID:</b> ${found.case_id}<br>
         <b>Tarikh:</b> ${found.created_at}<br>
+
+        <b>Nama Pengadu:</b> ${found.nama || "-"}<br>
+        <b>No Telefon:</b> ${found.no_telefon || "-"}<br>
+        <b>No IC:</b> ${found.no_ic || "-"}<br>
+        <b>Status SPR:</b> ${found.spr_status || "-"}<br><br>
+
         <b>Kategori:</b> ${found.kategori_aduan}<br>
 
         <b>Ringkasan:</b>
@@ -114,7 +115,7 @@ fetch(apiUrl)
           ${found.ringkasan_aduan}
         </div>
 
-        <b>Status:</b> ${found.status_kes}<br>
+        <b>Status Kes:</b> ${found.status_kes}<br>
 
         ${imageHtml}
 
@@ -132,7 +133,6 @@ fetch(apiUrl)
     console.error(err);
   });
 </script>
-
 
 </body>
 </html>
