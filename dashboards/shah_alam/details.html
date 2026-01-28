@@ -51,6 +51,10 @@ a{
   margin-top:10px;
   font-size:14px;
 }
+.whatsapp-btn{
+  background:#25D366;
+  margin-left:8px;
+}
 @media(max-width:600px){
   body{ padding:14px; }
   card{ font-size:14px; }
@@ -98,13 +102,32 @@ fetch(apiUrl)
       `;
     }
 
+    // phone + whatsapp link builder
+    let phoneDisplay = "-";
+    let waButton = "";
+
+    if(found.no_telefon && found.no_telefon !== ""){
+      const cleanPhone = found.no_telefon.replace(/[^0-9]/g,'');
+
+      phoneDisplay = `<a href="tel:${cleanPhone}">${found.no_telefon}</a>`;
+      waButton = `
+        <a class="action-btn whatsapp-btn" 
+           href="https://wa.me/${cleanPhone}" target="_blank">
+           WhatsApp
+        </a>
+      `;
+    }
+
     document.getElementById("result").innerHTML = `
       <div class="card">
         <b>Case ID:</b> ${found.case_id}<br>
         <b>Tarikh:</b> ${found.created_at}<br>
 
         <b>Nama Pengadu:</b> ${found.nama || "-"}<br>
-        <b>No Telefon:</b> ${found.no_telefon || "-"}<br>
+        <b>No Telefon:</b> ${phoneDisplay}
+        ${waButton}
+        <br>
+
         <b>No IC:</b> ${found.no_ic || "-"}<br>
         <b>Status SPR:</b> ${found.spr_status || "-"}<br><br>
 
