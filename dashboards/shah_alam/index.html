@@ -245,7 +245,10 @@ async function loadJSON(){
     const case_id = item.case_id
     const created = item.created_at   // full timestamp
 
-    const tarikh = created.slice(0,10)
+    const rawDate = created.slice(0,10)   // "2026-01-28"
+    const parts = rawDate.split("-")       // ["2026","01","28"]
+    const tarikh = parts[2]+"-"+parts[1]+"-"+parts[0]   // "28-01-2026"
+
     const masa   = created.slice(11,16)
 
     const kategori = item.kategori_aduan
