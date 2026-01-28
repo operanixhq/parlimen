@@ -194,10 +194,11 @@ fetch(apiUrl)
       <b>Status SPR:</b> ${found.spr_status || "-"}<br><br>
 
       <b>Kategori:</b> ${found.kategori_aduan}<br>
-      <b>Ringkasan:</b>
-      <div style="margin-top:6px;white-space:pre-wrap;">
+      <b>Ringkasan:</b>${found.ringkasan_aduan}<br><br>
+      
+      /*<div style="margin-top:6px;white-space:pre-wrap;">
         ${found.ringkasan_aduan}
-      </div>
+      </div>*/
 
       <b>Status Kes:</b> ${found.status_kes}<br>
       <b>AI Confidence:</b> ${aiConfidence}<br>
