@@ -129,7 +129,7 @@ function formatMalaysiaDate(timestamp){
   const min=parts.find(p=>p.type==="minute").value
   const ampm=parts.find(p=>p.type==="dayPeriod").value.toUpperCase()
 
-  return `${d}-${m}-${y} . ${h}:${min} ${ampm}`
+  return `${d}-${m}-${y} • ${h}:${min} ${ampm}`
 }
 
 /* ===== ACTION SHEET ===== */
