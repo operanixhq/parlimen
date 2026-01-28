@@ -53,7 +53,7 @@ a{
 }
 .whatsapp-btn{
   background:#25D366;
-  margin-left:8px;
+  margin-left:6px;
 }
 @media(max-width:600px){
   body{ padding:14px; }
@@ -82,7 +82,10 @@ const caseId = urlParams.get("case_id");
 fetch(apiUrl)
   .then(res => res.json())
   .then(data => {
-    let found = data.find(item => item.case_id === caseId);
+
+    // Fix utama: samakan jenis data case_id
+    let found = data.find(item => String(item.case_id) === String(caseId));
+
     if(!found){
       document.getElementById("result").innerHTML = "Kes tidak dijumpai";
       return;
@@ -92,27 +95,37 @@ fetch(apiUrl)
     const lng = found.lng;
     const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
+    // Image
     let imageHtml = "";
     if(found.image_url && found.image_url !== ""){
       imageHtml = `
         <div style="margin-top:10px">
-          <img src="${found.image_url}" 
+          <img src="${found.image_url}"
                style="width:100%;max-width:420px;border-radius:10px;">
         </div>
       `;
     }
 
-    // phone + whatsapp link builder
+    // Phone + Call + WhatsApp
     let phoneDisplay = "-";
     let waButton = "";
 
     if(found.no_telefon && found.no_telefon !== ""){
-      const cleanPhone = found.no_telefon.replace(/[^0-9]/g,'');
+      let cleanPhone = found.no_telefon.replace(/[^0-9]/g,'');
 
-      phoneDisplay = `<a href="tel:${cleanPhone}">${found.no_telefon}</a>`;
+      // Convert leading 0 to Malaysia country code 60
+      if(cleanPhone.startsWith("0")){
+        cleanPhone = "60" + cleanPhone.substring(1);
+      }
+
+      phoneDisplay = `
+        <a href="tel:+${cleanPhone}">${found.no_telefon}</a>
+      `;
+
       waButton = `
-        <a class="action-btn whatsapp-btn" 
-           href="https://wa.me/${cleanPhone}" target="_blank">
+        <a class="action-btn whatsapp-btn"
+           href="https://wa.me/${cleanPhone}"
+           target="_blank">
            WhatsApp
         </a>
       `;
@@ -121,13 +134,10 @@ fetch(apiUrl)
     document.getElementById("result").innerHTML = `
       <div class="card">
         <b>Case ID:</b> ${found.case_id}<br>
-        <b>Tarikh:</b> ${found.created_at}<br>
+        <b>Tarikh:</b> ${found.created_at}<br><br>
 
         <b>Nama Pengadu:</b> ${found.nama || "-"}<br>
-        <b>No Telefon:</b> ${phoneDisplay}
-        ${waButton}
-        <br>
-
+        <b>No Telefon:</b> ${phoneDisplay} ${waButton}<br>
         <b>No IC:</b> ${found.no_ic || "-"}<br>
         <b>Status SPR:</b> ${found.spr_status || "-"}<br><br>
 
@@ -153,7 +163,7 @@ fetch(apiUrl)
   })
   .catch(err => {
     document.getElementById("result").innerHTML = "Ralat load data";
-    console.error(err);
+    console.error("FETCH ERROR:", err);
   });
 </script>
 
