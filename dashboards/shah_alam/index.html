@@ -42,7 +42,6 @@
       100% { box-shadow:0 0 0 0 rgba(0,0,0,0); }
     }
 
-    /* ===== Filter Box ===== */
     #filterBox {
       position:absolute;
       top:10px;
@@ -67,7 +66,6 @@
       border:1px solid #ccc;
     }
 
-    /* ===== Toggle Filter Button ===== */
     #toggleFilterBtn {
       position:absolute;
       top:10px;
@@ -156,10 +154,8 @@
 
 <body>
 
-<!-- Toggle Button -->
 <div id="toggleFilterBtn">Filter</div>
 
-<!-- Filter Box -->
 <div id="filterBox">
   <b>Filter</b><br><br>
   Tarikh<br>
@@ -191,18 +187,14 @@
 <div id="powered">Powered by Operanix</div>
 
 <script>
-/* ===== Toggle Filter Box ===== */
+/* Toggle Filter */
 const toggleBtn = document.getElementById("toggleFilterBtn")
 const filterBox = document.getElementById("filterBox")
 toggleBtn.addEventListener("click",()=>{
-  if(filterBox.style.display === "none" || filterBox.style.display === ""){
-    filterBox.style.display = "block"
-  } else {
-    filterBox.style.display = "none"
-  }
+  filterBox.style.display = (filterBox.style.display==="block") ? "none" : "block"
 })
 
-/* ===== Existing Code ===== */
+/* Existing Code */
 if(localStorage.getItem("operanix_auth") !== "ok"){
   window.location.href = "login.html";
 }
@@ -251,7 +243,11 @@ async function loadJSON(){
 
   data.forEach(item=>{
     const case_id = item.case_id
-    const tarikh = item.created_at.slice(0,10)
+    const created = item.created_at   // full timestamp
+
+    const tarikh = created.slice(0,10)
+    const masa   = created.slice(11,16)
+
     const kategori = item.kategori_aduan
     const ringkasan = item.ringkasan_aduan
     const lat = parseFloat(item.lat)
@@ -266,7 +262,10 @@ async function loadJSON(){
     const point = L.latLng(lat,lng)
     const inside = leafletPip.pointInLayer(point, boundaryLayer).length > 0
 
-    allCases.push({case_id, tarikh, kategori, ringkasan, lat, lng, inside, status, urgency, image})
+    allCases.push({
+      case_id, tarikh, masa, kategori, ringkasan,
+      lat, lng, inside, status, urgency, image
+    })
   })
 
   const catSelect = document.getElementById("categoryFilter")
@@ -315,16 +314,13 @@ function renderData(){
 
     const marker = L.marker([c.lat,c.lng],{icon}).addTo(markerLayer)
 
-    let imgHtml = ""
-    if(c.image){
-      imgHtml = `<img src="${c.image}" style="width:100%;border-radius:8px;margin-top:6px;">`
-    }
-
     marker.bindPopup(`
       <div style="font-size:13px">
-        <b>${c.kategori}</b><br>
-        ${c.ringkasan}<br>
-        ${imgHtml}<br>
+        <div><b>${c.kategori}</b></div>
+        <div>📅 ${c.tarikh}</div>
+        <div>🕒 ${c.masa}</div>
+        <div style="margin-top:4px">${c.ringkasan}</div>
+        <br>
         <a href="details.html?case_id=${encodeURIComponent(c.case_id)}" target="_blank">
           Lihat detail →
         </a>
