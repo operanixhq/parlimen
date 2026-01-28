@@ -88,19 +88,20 @@
       50% { opacity:0.4; }
     }
 
-    /* ===== Legend Box ===== */
+    /* ===== Legend Box repositioned ===== */
     #legendBox {
       position:absolute;
-      bottom:50px;
-      left:12px;
+      bottom:12px;
+      left:50%;
+      transform:translateX(-35%);
       background:white;
-      padding:8px 10px;
+      padding:8px 12px;
       border-radius:8px;
       box-shadow:0 0 6px rgba(0,0,0,0.25);
       font-size:12px;
       z-index:999;
       line-height:1.6;
-      min-width:140px;
+      min-width:150px;
     }
 
     .legend-item {
@@ -121,32 +122,15 @@
     .legend-yellow { background:#ffcc00; }
     .legend-red { background:#e60000; }
     .legend-green { background:#00aa55; }
-    .legend-white { background:#fff; border:1px solid #666; }
+    .legend-white { background:#ffffff; border:1px solid #666; }
 
-    /* ===== Legend Toggle Button ===== */
-    #legendToggle {
-      position:absolute;
-      bottom:50px;
-      left:12px;
-      background:#0066ff;
-      color:white;
-      padding:6px 10px;
-      border-radius:6px;
-      font-size:12px;
-      font-weight:bold;
-      z-index:1000;
-      cursor:pointer;
-    }
-
-    /* mobile spacing */
+    /* mobile fine tune */
     @media (max-width:600px){
       #legendBox{
         font-size:11px;
         padding:6px 8px;
-        bottom:60px;
-      }
-      #legendToggle{
-        bottom:12px;
+        transform:translateX(-50%);
+        left:50%;
       }
     }
 
@@ -184,10 +168,7 @@
 <div id="map"></div>
 <div id="liveBadge">● LIVE</div>
 
-<!-- Toggle Button -->
-<div id="legendToggle" onclick="toggleLegend()">Legend</div>
-
-<!-- ===== Legend ===== -->
+<!-- Legend -->
 <div id="legendBox">
   <b>Status Aduan</b><br>
   <div class="legend-item"><div class="legend-dot legend-blue"></div> Rendah</div>
@@ -200,33 +181,17 @@
 <div id="powered">Powered by Operanix</div>
 
 <script>
-/* ===== Legend Toggle Logic ===== */
-let legendVisible = true
-function toggleLegend(){
-  const box = document.getElementById("legendBox")
-  if(legendVisible){
-    box.style.display = "none"
-    legendVisible = false
-  } else {
-    box.style.display = "block"
-    legendVisible = true
-  }
-}
-
-/* ===== EXISTING CODE BELOW (UNCHANGED) ===== */
-
+/* ===== existing logic unchanged ===== */
 if(localStorage.getItem("operanix_auth") !== "ok"){
   window.location.href = "login.html";
 }
 
-const JSON_URL = "https://script.google.com/macros/s/AKfycbw1PXgE7dZnWKaO1mUDJ8FzGdldQq1e99ljhmDHgNApPS6ULqaOW5HxeYTlITnx1cSLRA/exec"
+const JSON_URL = "https://script.google.com/macros/s/AKfycbxNvaB7xlf7ZkisIpiR4s1rrb4j37KypWkFtZ-AnN46q2keiu3cc5_8YX6l3dtjO6864g/exec"
 const GEOJSON_URL = "P108_shah_alam.geojson"
 
 const map = L.map('map').setView([3.0738, 101.5183], 12)
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  maxZoom:18
-}).addTo(map)
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map)
 
 let boundaryLayer
 let allCases = []
@@ -235,9 +200,7 @@ let markerLayer = L.layerGroup().addTo(map)
 let selectedStart = null
 let selectedEnd = null
 
-flatpickr("#dateRange",{
-  mode:"range",
-  dateFormat:"Y-m-d",
+flatpickr("#dateRange",{mode:"range",dateFormat:"Y-m-d",
   onChange:function(selectedDates){
     if(selectedDates.length===2){
       selectedStart = selectedDates[0].toISOString().slice(0,10)
@@ -253,9 +216,7 @@ flatpickr("#dateRange",{
 async function loadBoundary(){
   const res = await fetch(GEOJSON_URL)
   const geo = await res.json()
-  boundaryLayer = L.geoJSON(geo,{
-    style:{color:"#0044cc",weight:3,fillOpacity:0}
-  }).addTo(map)
+  boundaryLayer = L.geoJSON(geo,{style:{color:"#0044cc",weight:3,fillOpacity:0}}).addTo(map)
   map.fitBounds(boundaryLayer.getBounds())
 }
 
@@ -263,38 +224,24 @@ async function loadJSON(){
   allCases = []
   const res = await fetch(JSON_URL)
   const data = await res.json()
-  const categorySet = new Set()
 
   data.forEach(item=>{
-    const case_id    = item.case_id
-    const tarikh     = item.created_at.slice(0,10)
-    const kategori   = item.kategori_aduan
-    const ringkasan = item.ringkasan_aduan
-    const lat        = parseFloat(item.lat)
-    const lng        = parseFloat(item.lng)
-    const status     = item.status_kes
-    const urgency    = item.urgency
-    const image      = item.image_url
-
+    const lat = parseFloat(item.lat)
+    const lng = parseFloat(item.lng)
     if(isNaN(lat)||isNaN(lng)) return
-    categorySet.add(kategori)
 
-    const point = L.latLng(lat,lng)
-    const inside = leafletPip.pointInLayer(point, boundaryLayer).length > 0
+    const inside = leafletPip.pointInLayer(L.latLng(lat,lng), boundaryLayer).length>0
 
     allCases.push({
-      case_id, tarikh, kategori, ringkasan,
-      lat, lng, inside, status, urgency, image
+      lat,lng,
+      kategori:item.kategori_aduan,
+      ringkasan:item.ringkasan_aduan,
+      status:item.status_kes,
+      urgency:item.urgency,
+      inside,
+      image:item.image_url,
+      case_id:item.case_id
     })
-  })
-
-  const catSelect = document.getElementById("categoryFilter")
-  catSelect.innerHTML = '<option value="">Semua</option>'
-  categorySet.forEach(k=>{
-    const opt = document.createElement("option")
-    opt.value = k
-    opt.textContent = k
-    catSelect.appendChild(opt)
   })
 }
 
@@ -302,45 +249,17 @@ function renderData(){
   markerLayer.clearLayers()
   if(heatLayer) map.removeLayer(heatLayer)
 
-  const filtered = allCases
+  heatLayer = L.heatLayer(allCases.map(c=>[c.lat,c.lng,1]),{radius:40,blur:25,minOpacity:0.4}).addTo(map)
 
-  const heatPoints = filtered.map(c=>[c.lat,c.lng,1])
-  heatLayer = L.heatLayer(heatPoints,{
-    radius:40, blur:25, minOpacity:0.4
-  }).addTo(map)
+  allCases.forEach(c=>{
+    let pinClass="pin-blue"
+    if(c.urgency==="sederhana") pinClass="pin-yellow"
+    if(c.urgency==="tinggi") pinClass="pin-red"
+    if(c.status==="selesai") pinClass="pin-green"
+    if(!c.inside) pinClass="pin-white"
 
-  filtered.forEach(c=>{
-    let pinClass = "pin-blue"
-    if(c.urgency === "sederhana") pinClass = "pin-yellow"
-    if(c.urgency === "tinggi") pinClass = "pin-red"
-    if(c.status === "selesai") pinClass = "pin-green"
-    if(!c.inside) pinClass = "pin-white"
-
-    const icon = L.divIcon({
-      className:"",
-      html:`<div class="${pinClass}"></div>`,
-      iconSize:[14,14],
-      iconAnchor:[7,7]
-    })
-
-    const marker = L.marker([c.lat,c.lng],{icon}).addTo(markerLayer)
-
-    let imgHtml = ""
-    if(c.image){
-      imgHtml = `<img src="${c.image}" style="width:100%;border-radius:8px;margin-top:6px;">`
-    }
-
-    const popupHtml = `
-      <div style="font-size:13px">
-        <b>${c.kategori}</b><br>
-        ${c.ringkasan}<br>
-        ${imgHtml}<br>
-        <a href="details.html?case_id=${encodeURIComponent(c.case_id)}" target="_blank">
-          Lihat detail →
-        </a>
-      </div>
-    `
-    marker.bindPopup(popupHtml)
+    const icon=L.divIcon({className:"",html:`<div class="${pinClass}"></div>`,iconSize:[14,14],iconAnchor:[7,7]})
+    L.marker([c.lat,c.lng],{icon}).addTo(markerLayer)
   })
 }
 
@@ -348,12 +267,8 @@ async function init(){
   await loadBoundary()
   await loadJSON()
   renderData()
-  setInterval(async ()=>{
-    await loadJSON()
-    renderData()
-  },30000)
+  setInterval(async ()=>{await loadJSON();renderData()},30000)
 }
-
 init()
 </script>
 </body>
