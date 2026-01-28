@@ -51,18 +51,48 @@ a{
   margin-top:10px;
   font-size:14px;
 }
-.whatsapp-btn{
-  background:#25D366;
-  margin-left:8px;
+
+/* ===== ACTION SHEET ===== */
+#actionSheet{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:-100%;
+  background:#fff;
+  border-radius:18px 18px 0 0;
+  box-shadow:0 -4px 12px rgba(0,0,0,0.25);
+  padding:18px;
+  transition:bottom 0.3s ease;
+  z-index:9999;
 }
+#actionSheet.show{
+  bottom:0;
+}
+.sheet-title{
+  font-weight:bold;
+  margin-bottom:12px;
+}
+.sheet-item{
+  display:block;
+  padding:10px 0;
+  border-bottom:1px solid #eee;
+  font-size:15px;
+}
+.sheet-cancel{
+  text-align:center;
+  margin-top:10px;
+  font-weight:bold;
+  color:#e60000;
+}
+
 @media(max-width:600px){
   body{ padding:14px; }
-  card{ font-size:14px; }
   h2{ font-size:17px; }
 }
 </style>
 </head>
 <body>
+
 <script>
 if(localStorage.getItem("operanix_auth") !== "ok"){
   localStorage.setItem("operanix_redirect", window.location.href);
@@ -73,12 +103,19 @@ if(localStorage.getItem("operanix_auth") !== "ok"){
 <h2>Maklumat Aduan Lengkap</h2>
 <div id="result">Loading...</div>
 
+<!-- ACTION SHEET HTML -->
+<div id="actionSheet">
+  <div class="sheet-title">Hubungi Pengadu</div>
+  <div id="sheetLinks"></div>
+  <div class="sheet-cancel" onclick="closeSheet()">Tutup</div>
+</div>
+
 <script>
 const apiUrl = "https://script.google.com/macros/s/AKfycby89rBGaqZSh8p8tWPDqg4qeIKbmLDyz1BMpwN8x4LxRdn0ysVs5k4HG52Ara4dzj0BzA/exec"; 
 const urlParams = new URLSearchParams(window.location.search);
 const caseId = urlParams.get("case_id");
 
-// === DATE FORMAT FUNCTION ===
+/* ===== DATE FORMAT ===== */
 function formatMalaysiaDate(timestamp){
   const date = new Date(timestamp);
   const options = {
@@ -100,6 +137,14 @@ function formatMalaysiaDate(timestamp){
   return `${d}-${m}-${y} . ${h}:${min} ${ampm}`;
 }
 
+/* ===== ACTION SHEET FUNCTIONS ===== */
+function openSheet(){
+  document.getElementById("actionSheet").classList.add("show");
+}
+function closeSheet(){
+  document.getElementById("actionSheet").classList.remove("show");
+}
+
 fetch(apiUrl)
   .then(res => res.json())
   .then(data => {
@@ -112,11 +157,10 @@ fetch(apiUrl)
     const lat = found.lat;
     const lng = found.lng;
     const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-
     const formattedDate = formatMalaysiaDate(found.created_at);
 
     let imageHtml = "";
-    if(found.image_url && found.image_url !== ""){
+    if(found.image_url){
       imageHtml = `
         <div style="margin-top:10px">
           <img src="${found.image_url}"
@@ -125,21 +169,21 @@ fetch(apiUrl)
       `;
     }
 
-    let phoneDisplay = "-";
-    let waButton = "";
-    if(found.no_telefon !== undefined && found.no_telefon !== null && found.no_telefon !== ""){
-      const phoneStr = String(found.no_telefon);
-      const cleanPhone = phoneStr.replace(/[^0-9]/g,'');
-      phoneDisplay = `<a href="tel:${cleanPhone}">${phoneStr}</a>`;
-      waButton = `
-        <a class="action-btn whatsapp-btn"
-           href="https://wa.me/${cleanPhone}" target="_blank">
-           WhatsApp
-        </a>
-      `;
-    }
+    /* ===== PHONE CLEAN ===== */
+    let phoneStr = found.no_telefon ? String(found.no_telefon) : "";
+    let cleanPhone = phoneStr.replace(/[^0-9]/g,'');
 
-    // === NEW AI CONFIDENCE LINE ONLY ===
+    /* ===== BUILD ACTION SHEET LINKS ===== */
+    let sheetHTML = "";
+    if(cleanPhone){
+      sheetHTML += `<a class="sheet-item" href="tel:${cleanPhone}">📞 Phone Call</a>`;
+      sheetHTML += `<a class="sheet-item" href="https://wa.me/${cleanPhone}">💬 WhatsApp</a>`;
+      sheetHTML += `<a class="sheet-item" href="https://wa.me/${cleanPhone}?app_absent=0">💼 WhatsApp Business</a>`;
+      sheetHTML += `<a class="sheet-item" href="tg://resolve?domain=${cleanPhone}">📨 Telegram</a>`;
+      sheetHTML += `<a class="sheet-item" href="fb-messenger://user/${cleanPhone}">💙 Messenger</a>`;
+    }
+    document.getElementById("sheetLinks").innerHTML = sheetHTML;
+
     const aiConfidence = found.AI_confidence || found.ai_confidence || "-";
 
     document.getElementById("result").innerHTML = `
@@ -148,7 +192,11 @@ fetch(apiUrl)
         <b>Tarikh:</b> ${formattedDate}<br><br>
 
         <b>Nama Pengadu:</b> ${found.nama || "-"}<br>
-        <b>No Telefon:</b> ${phoneDisplay} ${waButton}<br>
+        <b>No Telefon:</b> 
+        <a href="javascript:void(0)" onclick="openSheet()">
+          ${phoneStr || "-"}
+        </a><br>
+
         <b>No IC:</b> ${found.no_ic || "-"}<br>
         <b>Status SPR:</b> ${found.spr_status || "-"}<br><br>
 
