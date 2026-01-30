@@ -121,14 +121,12 @@ function formatMalaysiaDate(timestamp){
   }
   const parts=new Intl.DateTimeFormat("en-GB",options)
     .formatToParts(new Date(timestamp))
-
   const d=parts.find(p=>p.type==="day").value
   const m=parts.find(p=>p.type==="month").value
   const y=parts.find(p=>p.type==="year").value
   const h=parts.find(p=>p.type==="hour").value
   const min=parts.find(p=>p.type==="minute").value
   const ampm=parts.find(p=>p.type==="dayPeriod").value.toUpperCase()
-
   return `${d}-${m}-${y} • ${h}:${min} ${ampm}`
 }
 
@@ -152,7 +150,6 @@ fetch(apiUrl)
   const lat = found.lat;
   const lng = found.lng;
   const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-
   const formattedDate = formatMalaysiaDate(found.created_at);
 
   let imageHtml = "";
@@ -167,7 +164,6 @@ fetch(apiUrl)
 
   let phoneStr = found.no_telefon ? String(found.no_telefon) : "";
   let cleanPhone = phoneStr.replace(/[^0-9]/g,'');
-
   let sheetHTML = "";
   if(cleanPhone){
     sheetHTML += `<a class="sheet-item" href="tel:${cleanPhone}">📞 Phone Call</a>`;
@@ -179,6 +175,7 @@ fetch(apiUrl)
   document.getElementById("sheetLinks").innerHTML = sheetHTML;
 
   const aiConfidence = found.AI_confidence || found.ai_confidence || "-";
+  const recommendedUnit = found.recommended_unit || found.unit_cadangan || "-";
 
   document.getElementById("result").innerHTML = `
     <div class="card">
@@ -194,7 +191,9 @@ fetch(apiUrl)
       <b>Status SPR:</b> ${found.spr_status || "-"}<br><br>
 
       <b>Kategori:</b> ${found.kategori_aduan}<br>
-      <b>Ringkasan:</b>${found.ringkasan_aduan}<br><br>
+      <b>Unit Cadangan oleh AI:</b> ${recommendedUnit}<br><br>
+
+      <b>Ringkasan:</b> ${found.ringkasan_aduan}<br><br>
 
       <b>Status Kes:</b> ${found.status_kes}<br>
       <b>AI Confidence:</b> ${aiConfidence}<br>
