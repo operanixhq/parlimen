@@ -49,6 +49,7 @@ th{ background:#f0f0f0; }
 .status-selesai{color:#00aa55;font-weight:bold;}
 .status-escalate{color:#e60000;font-weight:bold;}
 .small{ font-size:12px;color:#555; }
+
 .badge{
   display:inline-block;
   padding:2px 6px;
@@ -59,11 +60,11 @@ th{ background:#f0f0f0; }
 }
 .badge-today{ background:#e6f0ff; color:#0052cc; }
 .badge-yesterday{ background:#f0f0f0; color:#666; }
+
 .sla-ok{ color:#555; }
 .sla-warn{ color:#ff9900; font-weight:bold; }
 .sla-breach{ color:#e60000; font-weight:bold; }
 
-/* MODAL */
 .modal{
   display:none;
   position:fixed;
@@ -78,44 +79,43 @@ th{ background:#f0f0f0; }
   padding:16px;
   border-radius:10px;
 }
-.modal h3{ margin-top:0; }
 .log-item{
   border-bottom:1px solid #eee;
   padding:8px 0;
   font-size:13px;
 }
-.log-item:last-child{ border-bottom:none; }
 </style>
 </head>
 
 <body>
 
 <script>
-/* ===== AUTH CHECK ===== */
+/* ===== AUTH ===== */
 if(localStorage.getItem("operanix_auth") !== "ok"){
   location.replace("login.html");
 }
 
 /* ===== URL PARAM ===== */
 const urlParams = new URLSearchParams(window.location.search);
-const PRESELECT_CASE_ID = urlParams.get("case_id");
+const PRESELECT_CASE_ID = (urlParams.get("case_id") || "").trim();
 
-/* ===== MALAYSIA TIME ===== */
+/* ===== API ===== */
+const API =
+"https://script.google.com/macros/s/AKfycbwuJ4cbEX2SOjl6SaMcw1kXfdwZ9990erzz6xqYLYSZgJeosEY11xdR134kmXz_pzwGnA/exec";
+
+let allCases = [];
+let selectedCaseId = null;
+
+/* ===== TIME ===== */
 function formatMalaysiaDateTime(ts){
   if(!ts) return "-";
-  const d = new Date(ts);
-  return d.toLocaleString("en-GB",{
+  return new Date(ts).toLocaleString("en-GB",{
     timeZone:"Asia/Kuala_Lumpur",
-    day:"2-digit",
-    month:"2-digit",
-    year:"numeric",
-    hour:"2-digit",
-    minute:"2-digit",
-    hour12:true
+    day:"2-digit",month:"2-digit",year:"numeric",
+    hour:"2-digit",minute:"2-digit",hour12:true
   }).replace(",", " •");
 }
 
-/* ===== BADGE ===== */
 function dayBadge(ts){
   const now = new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
   const d = new Date(new Date(ts).toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
@@ -125,7 +125,6 @@ function dayBadge(ts){
   return "";
 }
 
-/* ===== SLA ===== */
 function slaInfo(ts,status){
   if(status==="selesai") return "-";
   const now = new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
@@ -189,32 +188,37 @@ function slaInfo(ts,status){
 <div class="modal" id="historyModal">
   <div class="modal-content">
     <h3>Sejarah Kes</h3>
-    <div id="historyContent"></div><br>
+    <div id="historyContent">Loading...</div><br>
     <button class="secondary" onclick="closeHistory()">Tutup</button>
   </div>
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbwuJ4cbEX2SOjl6SaMcw1kXfdwZ9990erzz6xqYLYSZgJeosEY11xdR134kmXz_pzwGnA/exec";
-let allCases=[], selectedCaseId=null;
-
-/* LOAD */
-fetch(API).then(r=>r.json()).then(d=>{
+/* ===== LOAD ===== */
+fetch(API)
+.then(r=>r.json())
+.then(d=>{
   allCases=d;
+
   [...new Set(d.map(x=>x.kategori_aduan))].forEach(k=>{
     filterKategori.innerHTML+=`<option value="${k}">${k}</option>`;
   });
-  if(PRESELECT_CASE_ID) searchCase.value=PRESELECT_CASE_ID;
+
+  if(PRESELECT_CASE_ID){
+    searchCase.value = PRESELECT_CASE_ID;
+  }
   renderTable();
 });
 
 function renderTable(){
   caseTable.innerHTML="";
+  const sCase = searchCase.value.trim();
+
   allCases.filter(c=>{
-    if(searchCase.value && c.case_id!==searchCase.value) return false;
+    if(sCase && String(c.case_id).trim()!==sCase) return false;
     if(filterKategori.value && c.kategori_aduan!==filterKategori.value) return false;
     if(filterStatus.value && c.status_kes!==filterStatus.value) return false;
-    if(filterDate.value && !c.created_at.startsWith(filterDate.value)) return false;
+    if(filterDate.value && !String(c.created_at).startsWith(filterDate.value)) return false;
     return true;
   }).forEach(c=>{
     caseTable.innerHTML+=`
@@ -232,68 +236,50 @@ function renderTable(){
   });
 }
 
-/* UPDATE */
+/* ===== UPDATE ===== */
 function openUpdate(id){
-  selectedCaseId=id;
-  updateCaseId.textContent=id;
-  updateModal.style.display="block";
+  selectedCaseId = id;
+  updateCaseId.textContent = id;
+  updateModal.style.display = "block";
 }
-function closeUpdate(){updateModal.style.display="none";}
+function closeUpdate(){ updateModal.style.display="none"; }
 function confirmUpdate(){
-  fetch(API,{method:"POST",body:JSON.stringify({
-    case_id:selectedCaseId,
-    new_status:updateStatus.value,
-    actor_name:"dashboard_staff",
-    actor_role:"staff",
-    note:updateNote.value
-  })}).then(()=>location.reload());
+  fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      case_id:selectedCaseId,
+      new_status:updateStatus.value,
+      actor_name:"dashboard_staff",
+      actor_role:"staff",
+      note:updateNote.value
+    })
+  }).then(()=>location.reload());
 }
 
-/* ===== FINAL, DEFENSIVE HISTORY FIX ===== */
+/* ===== HISTORY (CLEAN & CORRECT) ===== */
 function openHistory(caseId){
   const cid = String(caseId).trim();
+  historyModal.style.display="block";
+  historyContent.innerHTML="Loading...";
 
-  historyModal.style.display = "block";
-  historyContent.innerHTML = "Loading...";
-
-  fetch(API + "?logs=1&case_id=" + encodeURIComponent(cid))
-    .then(r => r.json())
-    .then(data => {
-
-      if (!Array.isArray(data)) {
-        historyContent.innerHTML = "Ralat data sejarah.";
-        return;
-      }
-
-      // 🔒 DEFENSIVE FILTER (INI KUNCI SEBENAR)
-      const filtered = data.filter(l => {
-        const logCase =
-          l.case_id ||
-          l.caseId ||
-          l.CASE_ID ||
-          "";
-        return String(logCase).trim() === cid;
-      });
-
-      if (!filtered.length) {
-        historyContent.innerHTML = "Tiada sejarah untuk kes ini.";
-        return;
-      }
-
-      historyContent.innerHTML = filtered.map(l => `
-        <div class="log-item">
-          <b>${formatMalaysiaDateTime(l.timestamp || l.created_at)}</b><br>
-          ${l.actor_name || "system"} (${l.actor_role || "-"})<br>
-          ${(l.from_status || "-")} → <b>${l.to_status || "-"}</b><br>
-          <i>${l.note || "-"}</i>
-        </div>
-      `).join("");
-    })
-    .catch(() => {
-      historyContent.innerHTML = "Gagal ambil sejarah.";
-    });
+  fetch(API+"?logs=1&case_id="+encodeURIComponent(cid))
+  .then(r=>r.json())
+  .then(data=>{
+    if(!Array.isArray(data)||!data.length){
+      historyContent.innerHTML="Tiada sejarah.";
+      return;
+    }
+    historyContent.innerHTML = data.map(l=>`
+      <div class="log-item">
+        <b>${formatMalaysiaDateTime(l.timestamp)}</b><br>
+        ${l.actor_name} (${l.actor_role})<br>
+        ${l.from_status} → <b>${l.to_status}</b><br>
+        <i>${l.note||"-"}</i>
+      </div>
+    `).join("");
+  });
 }
-
+function closeHistory(){ historyModal.style.display="none"; }
 </script>
 
 </body>
