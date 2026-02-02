@@ -21,7 +21,7 @@ h2{
   box-shadow:0 2px 6px rgba(0,0,0,0.1);
   margin-bottom:14px;
 }
-input, select, button{
+input, select, button, textarea{
   padding:6px;
   font-size:14px;
   margin-right:6px;
@@ -33,8 +33,9 @@ button{
   border-radius:6px;
   cursor:pointer;
 }
-button:hover{
-  background:#004ecc;
+button:hover{ background:#004ecc; }
+button.secondary{
+  background:#555;
 }
 table{
   width:100%;
@@ -46,23 +47,41 @@ th, td{
   border-bottom:1px solid #ddd;
   text-align:left;
 }
-th{
-  background:#f0f0f0;
-}
+th{ background:#f0f0f0; }
 .status-baru{color:#0066ff;font-weight:bold;}
 .status-dalamproses{color:#ff9900;font-weight:bold;}
 .status-selesai{color:#00aa55;font-weight:bold;}
 .status-escalate{color:#e60000;font-weight:bold;}
-.small{
-  font-size:12px;
-  color:#555;
+.small{ font-size:12px;color:#555; }
+
+/* MODAL */
+.modal{
+  display:none;
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.5);
+  z-index:9999;
 }
+.modal-content{
+  background:#fff;
+  max-width:520px;
+  margin:8% auto;
+  padding:16px;
+  border-radius:10px;
+}
+.modal h3{ margin-top:0; }
+.log-item{
+  border-bottom:1px solid #eee;
+  padding:8px 0;
+  font-size:13px;
+}
+.log-item:last-child{ border-bottom:none; }
 </style>
 </head>
 <body>
 
 <script>
-/* ===== AUTH CHECK (FINAL, NO LOOP) ===== */
+/* ===== AUTH CHECK ===== */
 if(localStorage.getItem("operanix_auth") !== "ok"){
   location.replace("login.html");
 }
@@ -89,105 +108,169 @@ if(localStorage.getItem("operanix_auth") !== "ok"){
 
 <!-- TABLE -->
 <div class="card">
-  <table>
-    <thead>
-      <tr>
-        <th>Case ID</th>
-        <th>Tarikh</th>
-        <th>Kategori</th>
-        <th>Status</th>
-        <th>Tindakan</th>
-      </tr>
-    </thead>
-    <tbody id="caseTable"></tbody>
-  </table>
+<table>
+  <thead>
+    <tr>
+      <th>Case ID</th>
+      <th>Tarikh</th>
+      <th>Kategori</th>
+      <th>Status</th>
+      <th>Tindakan</th>
+    </tr>
+  </thead>
+  <tbody id="caseTable"></tbody>
+</table>
+</div>
+
+<!-- UPDATE MODAL -->
+<div class="modal" id="updateModal">
+  <div class="modal-content">
+    <h3>Kemaskini Status</h3>
+    <div><b id="updateCaseId"></b></div><br>
+    <select id="updateStatus">
+      <option value="">-- Pilih Status --</option>
+      <option value="dalam proses">Dalam Proses</option>
+      <option value="selesai">Selesai</option>
+      <option value="escalate">Escalate</option>
+    </select>
+    <br><br>
+    <textarea id="updateNote" rows="3" style="width:100%" placeholder="Catatan (optional)"></textarea>
+    <br><br>
+    <button onclick="confirmUpdate()">Simpan</button>
+    <button class="secondary" onclick="closeUpdate()">Batal</button>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="modal" id="historyModal">
+  <div class="modal-content">
+    <h3>Sejarah Kes</h3>
+    <div id="historyContent">Loading...</div>
+    <br>
+    <button class="secondary" onclick="closeHistory()">Tutup</button>
+  </div>
 </div>
 
 <script>
 const API_GET_URL = "https://script.google.com/macros/s/AKfycbzNoivsmUm18JtTC4S_f_arsl9zaH1IpwmxwTbxpDS8rb7txwvMQ_kR-nBFfpW8b57axw/exec";
 const API_POST_URL = API_GET_URL;
-let allCases = [];
 
-/* ===== LOAD DATA ===== */
+let allCases = [];
+let selectedCaseId = null;
+
+/* LOAD DATA */
 fetch(API_GET_URL)
-  .then(r => r.json())
-  .then(data => {
-    allCases = data;
-    populateKategori();
-    renderTable();
-  });
+.then(r=>r.json())
+.then(data=>{
+  allCases=data;
+  populateKategori();
+  renderTable();
+});
 
 function populateKategori(){
-  const set = new Set();
-  allCases.forEach(c => set.add(c.kategori_aduan));
-  const sel = document.getElementById("filterKategori");
+  const set=new Set();
+  allCases.forEach(c=>set.add(c.kategori_aduan));
+  const sel=document.getElementById("filterKategori");
   set.forEach(k=>{
     const o=document.createElement("option");
-    o.value=k;
-    o.textContent=k;
+    o.value=k;o.textContent=k;
     sel.appendChild(o);
   });
 }
 
 function renderTable(){
-  const tbody = document.getElementById("caseTable");
-  tbody.innerHTML = "";
-
-  const fDate = document.getElementById("filterDate").value;
-  const fKat  = document.getElementById("filterKategori").value;
-  const fStat = document.getElementById("filterStatus").value;
-  const sCase = document.getElementById("searchCase").value.toLowerCase();
+  const tbody=document.getElementById("caseTable");
+  tbody.innerHTML="";
+  const fDate=filterDate.value;
+  const fKat=filterKategori.value;
+  const fStat=filterStatus.value;
+  const sCase=searchCase.value.toLowerCase();
 
   allCases.filter(c=>{
     if(fDate && !String(c.created_at).startsWith(fDate)) return false;
-    if(fKat && c.kategori_aduan !== fKat) return false;
-    if(fStat && c.status_kes !== fStat) return false;
+    if(fKat && c.kategori_aduan!==fKat) return false;
+    if(fStat && c.status_kes!==fStat) return false;
     if(sCase && !c.case_id.toLowerCase().includes(sCase)) return false;
     return true;
   }).forEach(c=>{
-    const tr = document.createElement("tr");
-    const statusClass = "status-" + c.status_kes.replace(/\s/g,"");
-    tr.innerHTML = `
+    const tr=document.createElement("tr");
+    const cls="status-"+c.status_kes.replace(/\s/g,"");
+    tr.innerHTML=`
       <td>${c.case_id}</td>
       <td class="small">${c.created_at}</td>
       <td>${c.kategori_aduan}</td>
-      <td class="${statusClass}">${c.status_kes}</td>
+      <td class="${cls}">${c.status_kes}</td>
       <td>
-        <select onchange="updateStatus('${c.case_id}', this.value)">
-          <option value="">-- Tukar --</option>
-          <option value="dalam proses">Dalam Proses</option>
-          <option value="selesai">Selesai</option>
-          <option value="escalate">Escalate</option>
-        </select>
+        <button onclick="openUpdate('${c.case_id}')">Update</button>
+        <button class="secondary" onclick="openHistory('${c.case_id}')">Sejarah</button>
       </td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-function updateStatus(caseId, newStatus){
-  if(!newStatus) return;
-  if(!confirm(`Sahkan tukar status kes ${caseId} kepada ${newStatus}?`)) return;
-
+/* UPDATE FLOW */
+function openUpdate(caseId){
+  selectedCaseId=caseId;
+  updateCaseId.textContent=caseId;
+  updateStatus.value="";
+  updateNote.value="";
+  updateModal.style.display="block";
+}
+function closeUpdate(){
+  updateModal.style.display="none";
+}
+function confirmUpdate(){
+  const newStatus=updateStatus.value;
+  if(!newStatus){ alert("Pilih status"); return; }
   fetch(API_POST_URL,{
     method:"POST",
     body:JSON.stringify({
-      case_id: caseId,
-      new_status: newStatus,
-      actor_name: "dashboard_staff",
-      actor_role: "staff",
-      note: "Updated via staff dashboard"
+      case_id:selectedCaseId,
+      new_status:newStatus,
+      actor_name:"dashboard_staff",
+      actor_role:"staff",
+      note:updateNote.value
     })
   })
   .then(r=>r.json())
   .then(res=>{
     if(res.success){
-      alert("Status berjaya dikemaskini");
+      alert("Status dikemaskini");
       location.reload();
     }else{
       alert("Ralat: "+res.error);
     }
   });
+}
+
+/* HISTORY FLOW */
+function openHistory(caseId){
+  historyModal.style.display="block";
+  historyContent.innerHTML="Loading...";
+  fetch(API_GET_URL+"?logs=1&case_id="+caseId)
+    .then(r=>r.json())
+    .then(data=>{
+      if(!data.length){
+        historyContent.innerHTML="Tiada rekod.";
+        return;
+      }
+      let html="";
+      data.forEach(l=>{
+        html+=`
+          <div class="log-item">
+            <b>${l.timestamp}</b><br>
+            ${l.actor_name} (${l.actor_role})<br>
+            ${l.from_status || "-"} → <b>${l.to_status}</b><br>
+            <i>${l.note || "-"}</i>
+          </div>
+        `;
+      });
+      historyContent.innerHTML=html;
+    });
+}
+function closeHistory(){
+  historyModal.style.display="none";
 }
 </script>
 
