@@ -287,22 +287,42 @@ function confirmUpdate(){
   }).then(()=>location.reload());
 }
 
-/* HISTORY */
-function openHistory(id){
+/* ===== FIXED HISTORY FUNCTION (DEFENSIVE) ===== */
+function openHistory(caseId){
   historyModal.style.display="block";
   historyContent.innerHTML="Loading...";
-  fetch(API_GET_URL+"?logs=1&case_id="+id)
-  .then(r=>r.json())
-  .then(d=>{
-    historyContent.innerHTML=d.length?d.map(l=>`
-      <div class="log-item">
-        <b>${formatMalaysiaDateTime(l.timestamp)}</b><br>
-        ${l.actor_name} (${l.actor_role})<br>
-        ${l.from_status||"-"} → <b>${l.to_status}</b><br>
-        <i>${l.note||"-"}</i>
-      </div>`).join(""):"Tiada sejarah";
-  });
+
+  fetch(API_GET_URL+"?logs=1&case_id="+encodeURIComponent(caseId))
+    .then(r=>r.json())
+    .then(data=>{
+      if(!Array.isArray(data) || !data.length){
+        historyContent.innerHTML="Tiada sejarah.";
+        return;
+      }
+
+      let html="";
+      data.forEach(l=>{
+        const ts = l.timestamp || l.log_created_at || l.created_at || "-";
+        const from = l.from_status || l.from || "-";
+        const to = l.to_status || l.to || "-";
+
+        html += `
+          <div class="log-item">
+            <b>${formatMalaysiaDateTime(ts)}</b><br>
+            ${l.actor_name || "system"} (${l.actor_role || "-"})<br>
+            ${from} → <b>${to}</b><br>
+            <i>${l.note || "-"}</i>
+          </div>
+        `;
+      });
+
+      historyContent.innerHTML = html;
+    })
+    .catch(()=>{
+      historyContent.innerHTML="Ralat ambil sejarah.";
+    });
 }
+
 function closeHistory(){ historyModal.style.display="none"; }
 </script>
 
