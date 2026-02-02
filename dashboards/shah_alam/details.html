@@ -42,6 +42,9 @@ a{
   font-weight:bold;
   text-decoration:none;
 }
+.action-btn.secondary{
+  background:#00aa55;
+}
 .action-btn img{
   width:18px;
   height:18px;
@@ -51,44 +54,19 @@ a{
   margin-top:10px;
   font-size:14px;
 }
-/* ===== ACTION SHEET ===== */
-#actionSheet{
-  position:fixed;
-  left:0;
-  right:0;
-  bottom:-100%;
-  background:#fff;
-  border-radius:18px 18px 0 0;
-  box-shadow:0 -4px 12px rgba(0,0,0,0.25);
-  padding:18px;
-  transition:bottom 0.3s ease;
-  z-index:9999;
-}
-#actionSheet.show{ bottom:0; }
-.sheet-title{ font-weight:bold; margin-bottom:12px; }
-.sheet-item{
-  display:block;
-  padding:10px 0;
-  border-bottom:1px solid #eee;
-  font-size:15px;
-}
-.sheet-cancel{
-  text-align:center;
-  margin-top:10px;
-  font-weight:bold;
-  color:#e60000;
-}
 @media(max-width:600px){
   body{ padding:14px; }
   h2{ font-size:17px; }
 }
 </style>
 </head>
+
 <body>
 
 <script>
-if(localStorage.getItem("operanix_auth") !== "ok"){
-  localStorage.setItem("operanix_redirect", window.location.href);
+/* ===== AUTH CHECK ===== */
+if(sessionStorage.getItem("operanix_auth") !== "ok"){
+  sessionStorage.setItem("operanix_redirect", window.location.href);
   window.location.href = "login.html";
 }
 </script>
@@ -96,123 +74,106 @@ if(localStorage.getItem("operanix_auth") !== "ok"){
 <h2>Maklumat Aduan Lengkap</h2>
 <div id="result">Loading...</div>
 
-<!-- ACTION SHEET -->
-<div id="actionSheet">
-  <div class="sheet-title">Hubungi Pengadu</div>
-  <div id="sheetLinks"></div>
-  <div class="sheet-cancel" onclick="closeSheet()">Tutup</div>
-</div>
-
 <script>
-const apiUrl = "https://script.google.com/macros/s/AKfycbyuYoC3056hLbtko5zOHqybeNivm3Yby8aLEHqbpMQSyFNCJ7QPVBtJp-lfGyrfLj7wUg/exec"; 
+/* ===== CONFIG ===== */
+const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";
 const urlParams = new URLSearchParams(window.location.search);
-const caseId = urlParams.get("case_id");
+const CURRENT_CASE_ID = decodeURIComponent(urlParams.get("case_id") || "").trim();
 
-/* ===== MALAYSIA DATE TIME FIXED (SAME AS INDEX) ===== */
-function formatMalaysiaDate(timestamp){
-  const options={
-    timeZone:"Asia/Kuala_Lumpur",
-    day:"2-digit",
-    month:"2-digit",
-    year:"numeric",
-    hour:"2-digit",
-    minute:"2-digit",
-    hour12:true
-  }
-  const parts=new Intl.DateTimeFormat("en-GB",options)
-    .formatToParts(new Date(timestamp))
-  const d=parts.find(p=>p.type==="day").value
-  const m=parts.find(p=>p.type==="month").value
-  const y=parts.find(p=>p.type==="year").value
-  const h=parts.find(p=>p.type==="hour").value
-  const min=parts.find(p=>p.type==="minute").value
-  const ampm=parts.find(p=>p.type==="dayPeriod").value.toUpperCase()
-  return `${d}-${m}-${y} • ${h}:${min} ${ampm}`
+/* ===== CSV PARSER ===== */
+function parseCSVRow(row){
+  return row.match(/("([^"]|"")*"|[^,]*)(?=,|$)/g).map(v=>{
+    return v.replace(/^"|"$/g,"").trim();
+  });
 }
 
-/* ===== ACTION SHEET ===== */
-function openSheet(){
-  document.getElementById("actionSheet").classList.add("show");
-}
-function closeSheet(){
-  document.getElementById("actionSheet").classList.remove("show");
-}
-
-fetch(apiUrl)
-.then(res => res.json())
-.then(data => {
-  let found = data.find(item => item.case_id === caseId);
-  if(!found){
-    document.getElementById("result").innerHTML = "Kes tidak dijumpai";
+/* ===== GO TO STAFF DASHBOARD ===== */
+function goStaffDashboard(){
+  if(!CURRENT_CASE_ID){
+    alert("Case ID tidak sah");
     return;
   }
+  window.location.href =
+    `dashboard_staff.html?case_id=${encodeURIComponent(CURRENT_CASE_ID)}`;
+}
 
-  const lat = found.lat;
-  const lng = found.lng;
-  const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-  const formattedDate = formatMalaysiaDate(found.created_at);
+/* ===== LOAD DATA ===== */
+fetch(csvUrl)
+.then(r=>r.text())
+.then(text=>{
+  const lines = text.trim().split("\n");
+  const headers = parseCSVRow(lines[0]);
 
-  let imageHtml = "";
-  if(found.image_url){
-    imageHtml = `
-      <div style="margin-top:10px">
-        <img src="${found.image_url}"
-             style="width:100%;max-width:420px;border-radius:10px;">
-      </div>
-    `;
+  const idx = {
+    case_id: headers.indexOf("case_id"),
+    tarikh: headers.indexOf("created_at"),
+    kategori: headers.indexOf("kategori_aduan"),
+    ringkasan: headers.indexOf("ringkasan_aduan"),
+    status: headers.indexOf("status_aduan"),
+    lat: headers.indexOf("lat"),
+    lng: headers.indexOf("lng"),
+    image: headers.indexOf("image_url")
+  };
+
+  let found = false;
+
+  for(let i=1;i<lines.length;i++){
+    const cols = parseCSVRow(lines[i]);
+
+    if(cols[idx.case_id] === CURRENT_CASE_ID){
+      found = true;
+
+      const lat = cols[idx.lat];
+      const lng = cols[idx.lng];
+      const wazeLink = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+      const imgUrl = cols[idx.image];
+
+      document.getElementById("result").innerHTML = `
+        <div class="card">
+          <b>Case ID:</b> ${cols[idx.case_id]}<br>
+          <b>Tarikh:</b> ${cols[idx.tarikh]}<br>
+          <b>Kategori:</b> ${cols[idx.kategori]}<br>
+
+          <b>Ringkasan:</b>
+          <div style="margin-top:6px;white-space:pre-wrap;">
+            ${cols[idx.ringkasan]}
+          </div>
+
+          <b>Status:</b> ${cols[idx.status]}<br>
+
+          ${imgUrl ? `
+            <div style="margin-top:12px;">
+              <img src="${imgUrl}"
+                   style="max-width:100%;border-radius:8px;">
+            </div>
+          ` : ""}
+
+          <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+            <a class="action-btn" href="${wazeLink}" target="_blank">
+              <img src="../assets/waze-icon.svg">
+              Buka Waze
+            </a>
+
+            <button class="action-btn secondary"
+                    onclick="goStaffDashboard()">
+              🧑‍💼 Kemaskini Kes
+            </button>
+          </div>
+        </div>
+
+        <a class="back-link" href="index.html">
+          ← Kembali ke Peta
+        </a>
+      `;
+      break;
+    }
   }
 
-  let phoneStr = found.no_telefon ? String(found.no_telefon) : "";
-  let cleanPhone = phoneStr.replace(/[^0-9]/g,'');
-  let sheetHTML = "";
-  if(cleanPhone){
-    sheetHTML += `<a class="sheet-item" href="tel:${cleanPhone}">📞 Phone Call</a>`;
-    sheetHTML += `<a class="sheet-item" href="https://wa.me/${cleanPhone}">💬 WhatsApp</a>`;
-    sheetHTML += `<a class="sheet-item" href="https://wa.me/${cleanPhone}?app_absent=0">💼 WhatsApp Business</a>`;
-    sheetHTML += `<a class="sheet-item" href="tg://resolve?domain=${cleanPhone}">📨 Telegram</a>`;
-    sheetHTML += `<a class="sheet-item" href="fb-messenger://user/${cleanPhone}">💙 Messenger</a>`;
+  if(!found){
+    document.getElementById("result").innerHTML = "Kes tidak dijumpai";
   }
-  document.getElementById("sheetLinks").innerHTML = sheetHTML;
-
-  const aiConfidence = found.AI_confidence || found.ai_confidence || "-";
-  const recommendedUnit = found.recommended_unit || found.unit_cadangan || "-";
-
-  document.getElementById("result").innerHTML = `
-    <div class="card">
-      <b>Case ID:</b> ${found.case_id}<br>
-      <b>Tarikh dan Waktu:</b> ${formattedDate}<br><br>
-
-      <b>Nama Pengadu:</b> ${found.nama || "-"}<br>
-      <b>No Telefon:</b>
-        <a href="javascript:void(0)" onclick="openSheet()">
-          ${phoneStr || "-"}
-        </a><br>
-      <b>No IC:</b> ${found.no_ic || "-"}<br>
-      <b>Status SPR:</b> ${found.spr_status || "-"}<br><br>
-
-      <b>Kategori:</b> ${found.kategori_aduan}<br>
-      <b>Unit Cadangan (AI):</b> ${recommendedUnit}<br><br>
-
-      <b>Ringkasan:</b> ${found.ringkasan_aduan}<br><br>
-
-      <b>Status Kes:</b> ${found.status_kes}<br>
-      <b>AI Confidence:</b> ${aiConfidence}<br>
-
-      ${imageHtml}
-
-      <a class="action-btn" href="${wazeLink}" target="_blank">
-        <img src="../assets/waze-icon.svg">
-        Buka Waze
-      </a>
-    </div>
-
-    <a class="back-link" href="index.html">← Kembali ke Peta</a>
-  `;
-})
-.catch(err => {
-  document.getElementById("result").innerHTML = "Ralat load data";
-  console.error(err);
 });
 </script>
+
 </body>
 </html>
