@@ -62,6 +62,29 @@ th{ background:#f0f0f0; }
 .sla-ok{ color:#555; }
 .sla-warn{ color:#ff9900; font-weight:bold; }
 .sla-breach{ color:#e60000; font-weight:bold; }
+
+/* MODAL */
+.modal{
+  display:none;
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.5);
+  z-index:9999;
+}
+.modal-content{
+  background:#fff;
+  max-width:520px;
+  margin:8% auto;
+  padding:16px;
+  border-radius:10px;
+}
+.modal h3{ margin-top:0; }
+.log-item{
+  border-bottom:1px solid #eee;
+  padding:8px 0;
+  font-size:13px;
+}
+.log-item:last-child{ border-bottom:none; }
 </style>
 </head>
 
@@ -110,20 +133,16 @@ function dayBadge(ts){
 /* ===== SLA TIMER (HARI + JAM) ===== */
 function slaInfo(ts, status){
   if(status === "selesai") return "-";
-
   const now = new Date();
   const myNow = new Date(now.toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
   const d = new Date(ts);
   const myDate = new Date(d.toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
 
-  const diffMs = myNow - myDate;
-  const totalHours = Math.floor(diffMs / (1000*60*60));
+  const totalHours = Math.floor((myNow - myDate) / (1000*60*60));
   const days = Math.floor(totalHours / 24);
   const hours = totalHours % 24;
 
-  let label = "";
-  if(days > 0) label += `${days}h `;
-  label += `${hours}j`;
+  const label = `${days > 0 ? days+"h " : ""}${hours}j`;
 
   if(totalHours >= 48) return `<span class="sla-breach">${label}</span>`;
   if(totalHours >= 24) return `<span class="sla-warn">${label}</span>`;
@@ -165,9 +184,38 @@ function slaInfo(ts, status){
 </table>
 </div>
 
+<!-- UPDATE MODAL -->
+<div class="modal" id="updateModal">
+  <div class="modal-content">
+    <h3>Kemaskini Status</h3>
+    <b id="updateCaseId"></b><br><br>
+    <select id="updateStatus">
+      <option value="">-- Pilih Status --</option>
+      <option value="dalam proses">Dalam Proses</option>
+      <option value="selesai">Selesai</option>
+      <option value="escalate">Escalate</option>
+    </select><br><br>
+    <textarea id="updateNote" rows="3" style="width:100%" placeholder="Catatan (optional)"></textarea><br><br>
+    <button onclick="confirmUpdate()">Simpan</button>
+    <button class="secondary" onclick="closeUpdate()">Batal</button>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="modal" id="historyModal">
+  <div class="modal-content">
+    <h3>Sejarah Kes</h3>
+    <div id="historyContent">Loading...</div><br>
+    <button class="secondary" onclick="closeHistory()">Tutup</button>
+  </div>
+</div>
+
 <script>
 const API_GET_URL = "https://script.google.com/macros/s/AKfycbzNoivsmUm18JtTC4S_f_arsl9zaH1IpwmxwTbxpDS8rb7txwvMQ_kR-nBFfpW8b57axw/exec";
+const API_POST_URL = API_GET_URL;
+
 let allCases = [];
+let selectedCaseId = null;
 
 /* LOAD DATA */
 fetch(API_GET_URL)
@@ -182,17 +230,15 @@ fetch(API_GET_URL)
 function populateKategori(){
   const set=new Set();
   allCases.forEach(c=>set.add(c.kategori_aduan));
-  const sel=document.getElementById("filterKategori");
   set.forEach(k=>{
     const o=document.createElement("option");
     o.value=k;o.textContent=k;
-    sel.appendChild(o);
+    filterKategori.appendChild(o);
   });
 }
 
 function renderTable(){
-  const tbody=document.getElementById("caseTable");
-  tbody.innerHTML="";
+  caseTable.innerHTML="";
   const fDate=filterDate.value;
   const fKat=filterKategori.value;
   const fStat=filterStatus.value;
@@ -206,24 +252,58 @@ function renderTable(){
     return true;
   }).forEach(c=>{
     const cls="status-"+c.status_kes.replace(/\s/g,"");
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
-      <td>${c.case_id}</td>
-      <td class="small">
-        ${formatMalaysiaDateTime(c.created_at)}
-        ${dayBadge(c.created_at)}
-      </td>
-      <td>${c.kategori_aduan}</td>
-      <td class="${cls}">${c.status_kes}</td>
-      <td>${slaInfo(c.created_at, c.status_kes)}</td>
-      <td>
-        <button>Update</button>
-        <button class="secondary">Sejarah</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
+    caseTable.innerHTML+=`
+      <tr>
+        <td>${c.case_id}</td>
+        <td class="small">${formatMalaysiaDateTime(c.created_at)} ${dayBadge(c.created_at)}</td>
+        <td>${c.kategori_aduan}</td>
+        <td class="${cls}">${c.status_kes}</td>
+        <td>${slaInfo(c.created_at,c.status_kes)}</td>
+        <td>
+          <button onclick="openUpdate('${c.case_id}')">Update</button>
+          <button class="secondary" onclick="openHistory('${c.case_id}')">Sejarah</button>
+        </td>
+      </tr>`;
   });
 }
+
+/* UPDATE */
+function openUpdate(id){
+  selectedCaseId=id;
+  updateCaseId.textContent=id;
+  updateModal.style.display="block";
+}
+function closeUpdate(){ updateModal.style.display="none"; }
+function confirmUpdate(){
+  fetch(API_POST_URL,{
+    method:"POST",
+    body:JSON.stringify({
+      case_id:selectedCaseId,
+      new_status:updateStatus.value,
+      actor_name:"dashboard_staff",
+      actor_role:"staff",
+      note:updateNote.value
+    })
+  }).then(()=>location.reload());
+}
+
+/* HISTORY */
+function openHistory(id){
+  historyModal.style.display="block";
+  historyContent.innerHTML="Loading...";
+  fetch(API_GET_URL+"?logs=1&case_id="+id)
+  .then(r=>r.json())
+  .then(d=>{
+    historyContent.innerHTML=d.length?d.map(l=>`
+      <div class="log-item">
+        <b>${formatMalaysiaDateTime(l.timestamp)}</b><br>
+        ${l.actor_name} (${l.actor_role})<br>
+        ${l.from_status||"-"} → <b>${l.to_status}</b><br>
+        <i>${l.note||"-"}</i>
+      </div>`).join(""):"Tiada sejarah";
+  });
+}
+function closeHistory(){ historyModal.style.display="none"; }
 </script>
 
 </body>
