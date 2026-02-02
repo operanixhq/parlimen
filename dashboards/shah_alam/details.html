@@ -67,10 +67,9 @@ a{
 <div id="result">Loading...</div>
 
 <script>
-/* ===== CONFIG ===== */
 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTXBgy7se3-U4mSHdnbZ6YiRYToQEVFtEKuZ_z_RRCby7nYGd-HViMSNexPxFHP2pENCUjkX3ofqqlE/pub?output=csv";
 const urlParams = new URLSearchParams(window.location.search);
-const CURRENT_CASE_ID = decodeURIComponent(urlParams.get("case_id") || "").trim();
+const caseId = decodeURIComponent(urlParams.get("case_id") || "").trim();
 
 /* ===== CSV PARSER ===== */
 function parseCSVRow(row){
@@ -79,21 +78,20 @@ function parseCSVRow(row){
   });
 }
 
-/* ===== STAFF DASHBOARD ACCESS ===== */
-function goStaffDashboard(){
-  if(!CURRENT_CASE_ID){
+/* ===== GO TO STAFF DASHBOARD (PER CASE) ===== */
+function goUpdateKes(){
+  if(!caseId){
     alert("Case ID tidak sah");
     return;
   }
 
   if(localStorage.getItem("operanix_auth") === "ok"){
     window.location.href =
-      `dashboard_staff.html?case_id=${encodeURIComponent(CURRENT_CASE_ID)}`;
+      `dashboard_staff.html?case_id=${encodeURIComponent(caseId)}`;
   } else {
-    // simpan redirect dan login dulu
     localStorage.setItem(
       "operanix_redirect",
-      `dashboard_staff.html?case_id=${encodeURIComponent(CURRENT_CASE_ID)}`
+      `dashboard_staff.html?case_id=${encodeURIComponent(caseId)}`
     );
     window.location.href = "login.html";
   }
@@ -122,7 +120,7 @@ fetch(csvUrl)
   for(let i=1;i<lines.length;i++){
     const cols = parseCSVRow(lines[i]);
 
-    if(cols[idx.case_id] === CURRENT_CASE_ID){
+    if(cols[idx.case_id] === caseId){
       found = true;
 
       const lat = cols[idx.lat];
@@ -145,8 +143,7 @@ fetch(csvUrl)
 
           ${imgUrl ? `
             <div style="margin-top:12px;">
-              <img src="${imgUrl}"
-                   style="max-width:100%;border-radius:8px;">
+              <img src="${imgUrl}" style="max-width:100%;border-radius:8px;">
             </div>
           ` : ""}
 
@@ -157,7 +154,7 @@ fetch(csvUrl)
             </a>
 
             <button class="action-btn secondary"
-                    onclick="goStaffDashboard()">
+                    onclick="goUpdateKes()">
               🧑‍💼 Kemaskini Kes
             </button>
           </div>
