@@ -63,14 +63,6 @@ a{
 
 <body>
 
-<script>
-/* ===== AUTH CHECK ===== */
-if(sessionStorage.getItem("operanix_auth") !== "ok"){
-  sessionStorage.setItem("operanix_redirect", window.location.href);
-  window.location.href = "login.html";
-}
-</script>
-
 <h2>Maklumat Aduan Lengkap</h2>
 <div id="result">Loading...</div>
 
@@ -87,14 +79,24 @@ function parseCSVRow(row){
   });
 }
 
-/* ===== GO TO STAFF DASHBOARD ===== */
+/* ===== STAFF DASHBOARD ACCESS ===== */
 function goStaffDashboard(){
   if(!CURRENT_CASE_ID){
     alert("Case ID tidak sah");
     return;
   }
-  window.location.href =
-    `dashboard_staff.html?case_id=${encodeURIComponent(CURRENT_CASE_ID)}`;
+
+  if(localStorage.getItem("operanix_auth") === "ok"){
+    window.location.href =
+      `dashboard_staff.html?case_id=${encodeURIComponent(CURRENT_CASE_ID)}`;
+  } else {
+    // simpan redirect dan login dulu
+    localStorage.setItem(
+      "operanix_redirect",
+      `dashboard_staff.html?case_id=${encodeURIComponent(CURRENT_CASE_ID)}`
+    );
+    window.location.href = "login.html";
+  }
 }
 
 /* ===== LOAD DATA ===== */
