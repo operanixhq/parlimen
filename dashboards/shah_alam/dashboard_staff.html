@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Operanix | Dashboard Staf</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  margin:0;
+  padding:16px;
+  background:#f4f6f8;
+}
+h2{
+  margin:0 0 12px 0;
+}
+.card{
+  background:#fff;
+  padding:14px;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+  margin-bottom:14px;
+}
+input, select, button{
+  padding:6px;
+  font-size:14px;
+  margin-right:6px;
+}
+button{
+  background:#0066ff;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+button:hover{
+  background:#004ecc;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+th, td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+  text-align:left;
+}
+th{
+  background:#f0f0f0;
+}
+.status-baru{color:#0066ff;font-weight:bold;}
+.status-proses{color:#ff9900;font-weight:bold;}
+.status-selesai{color:#00aa55;font-weight:bold;}
+.status-escalate{color:#e60000;font-weight:bold;}
+.small{
+  font-size:12px;
+  color:#555;
+}
+</style>
+</head>
+
+<body>
+
+<script>
+/* ===== BASIC AUTH CHECK ===== */
+if(localStorage.getItem("operanix_staff_auth") !== "ok"){
+  window.location.href = "login.html";
+}
+</script>
+
+<h2>Dashboard Operasi Staf</h2>
+
+<!-- FILTER -->
+<div class="card">
+  <input type="date" id="filterDate">
+  <select id="filterKategori">
+    <option value="">Semua Kategori</option>
+  </select>
+  <select id="filterStatus">
+    <option value="">Semua Status</option>
+    <option value="baru">Baru</option>
+    <option value="dalam proses">Dalam Proses</option>
+    <option value="selesai">Selesai</option>
+    <option value="escalate">Escalate</option>
+  </select>
+  <input type="text" id="searchCase" placeholder="Cari Case ID">
+  <button onclick="renderTable()">Tapis</button>
+</div>
+
+<!-- TABLE -->
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Case ID</th>
+        <th>Tarikh</th>
+        <th>Kategori</th>
+        <th>Status</th>
+        <th>Tindakan</th>
+      </tr>
+    </thead>
+    <tbody id="caseTable"></tbody>
+  </table>
+</div>
+
+<script>
+const API_GET_URL = "https://script.google.com/macros/s/AKfycbynTscLgVADKT9aSRNtE23qZr9c2FoMJY_NSRuyUSJUa_wbVytF9l41xAXyAYNFXW1FpQ/exec";
+const API_POST_URL = API_GET_URL; // doPost sama URL
+
+let allCases = [];
+
+/* ===== LOAD DATA ===== */
+fetch(API_GET_URL)
+  .then(r => r.json())
+  .then(data => {
+    allCases = data;
+    populateKategori();
+    renderTable();
+  });
+
+function populateKategori(){
+  const set = new Set();
+  allCases.forEach(c => set.add(c.kategori_aduan));
+  const sel = document.getElementById("filterKategori");
+  set.forEach(k=>{
+    const o=document.createElement("option");
+    o.value=k;o.textContent=k;
+    sel.appendChild(o);
+  });
+}
+
+/* ===== RENDER TABLE ===== */
+function renderTable(){
+  const tbody = document.getElementById("caseTable");
+  tbody.innerHTML = "";
+
+  const fDate = document.getElementById("filterDate").value;
+  const fKat  = document.getElementById("filterKategori").value;
+  const fStat = document.getElementById("filterStatus").value;
+  const sCase = document.getElementById("searchCase").value.toLowerCase();
+
+  allCases.filter(c=>{
+    if(fDate && !String(c.created_at).startsWith(fDate)) return false;
+    if(fKat && c.kategori_aduan !== fKat) return false;
+    if(fStat && c.status_kes !== fStat) return false;
+    if(sCase && !c.case_id.toLowerCase().includes(sCase)) return false;
+    return true;
+  }).forEach(c=>{
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${c.case_id}</td>
+      <td class="small">${c.created_at}</td>
+      <td>${c.kategori_aduan}</td>
+      <td class="status-${c.status_kes.replace(" ","")}">${c.status_kes}</td>
+      <td>
+        <select onchange="updateStatus('${c.case_id}', this.value)">
+          <option value="">-- Tukar --</option>
+          <option value="dalam proses">Dalam Proses</option>
+          <option value="selesai">Selesai</option>
+          <option value="escalate">Escalate</option>
+        </select>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ===== UPDATE STATUS ===== */
+function updateStatus(caseId, newStatus){
+  if(!newStatus) return;
+
+  if(!confirm("Sahkan tukar status kes "+caseId+" kepada "+newStatus+"?")) return;
+
+  fetch(API_POST_URL,{
+    method:"POST",
+    body:JSON.stringify({
+      case_id: caseId,
+      new_status: newStatus,
+      actor_name: localStorage.getItem("staff_name") || "staff",
+      actor_role: localStorage.getItem("staff_role") || "staff",
+      note: "Updated via dashboard"
+    })
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.success){
+      alert("Status berjaya dikemaskini");
+      location.reload();
+    }else{
+      alert("Ralat: "+res.error);
+    }
+  });
+}
+</script>
+
+</body>
+</html>
