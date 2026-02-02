@@ -104,39 +104,43 @@ async function login(){
   const errorEl = document.getElementById("errorMsg");
   const input = inputEl.value.trim();
   errorEl.style.display="none";
+
   if(!input) return;
 
   const hashed = await sha256(input);
 
-  if(hashed === VALID_HASH){
-    localStorage.setItem("operanix_auth","ok");
-
-    // kalau user asalnya redirect dari page lain, teruskan
-    const redirectUrl = localStorage.getItem("operanix_redirect");
-    if(redirectUrl){
-      localStorage.removeItem("operanix_redirect");
-      window.location.href = redirectUrl;
-      return;
-    }
-
-    // papar pilihan
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("choiceBox").style.display="block";
-  } else {
+  if(hashed !== VALID_HASH){
     errorEl.style.display="block";
     inputEl.value="";
+    return;
   }
+
+  // === AUTH SUCCESS ===
+  localStorage.setItem("operanix_auth","ok");
+
+  // Ambil redirect sekali sahaja
+  const redirectUrl = localStorage.getItem("operanix_redirect");
+  localStorage.removeItem("operanix_redirect");
+
+  if(redirectUrl){
+    window.location.replace(redirectUrl);
+    return;
+  }
+
+  // Login manual → papar pilihan
+  document.getElementById("loginBox").style.display="none";
+  document.getElementById("choiceBox").style.display="block";
 }
 
 function goMap(){
-  window.location.href = "index.html";
+  window.location.replace("index.html");
 }
 
 function goDashboard(){
-  window.location.href = "dashboard_staff.html";
+  window.location.replace("dashboard_staff.html");
 }
 
-// Enter key
+// Enter key submit
 document.getElementById("tokenInput")
   .addEventListener("keypress", function(e){
     if(e.key==="Enter") login();
