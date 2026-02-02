@@ -62,13 +62,9 @@ th{
 <body>
 
 <script>
-/* ===== BASIC AUTH CHECK (MVP: ONE PASSWORD) ===== */
-const auth = localStorage.getItem("operanix_auth");
-if(auth !== "ok"){
-  if(!localStorage.getItem("operanix_redirect")){
-    localStorage.setItem("operanix_redirect", window.location.href);
-  }
-  window.location.href = "login.html";
+/* ===== AUTH CHECK (FINAL, NO LOOP) ===== */
+if(localStorage.getItem("operanix_auth") !== "ok"){
+  location.replace("login.html");
 }
 </script>
 
@@ -110,7 +106,6 @@ if(auth !== "ok"){
 <script>
 const API_GET_URL = "https://script.google.com/macros/s/AKfycbzNoivsmUm18JtTC4S_f_arsl9zaH1IpwmxwTbxpDS8rb7txwvMQ_kR-nBFfpW8b57axw/exec";
 const API_POST_URL = API_GET_URL;
-
 let allCases = [];
 
 /* ===== LOAD DATA ===== */
@@ -134,7 +129,6 @@ function populateKategori(){
   });
 }
 
-/* ===== RENDER TABLE ===== */
 function renderTable(){
   const tbody = document.getElementById("caseTable");
   tbody.innerHTML = "";
@@ -153,7 +147,6 @@ function renderTable(){
   }).forEach(c=>{
     const tr = document.createElement("tr");
     const statusClass = "status-" + c.status_kes.replace(/\s/g,"");
-
     tr.innerHTML = `
       <td>${c.case_id}</td>
       <td class="small">${c.created_at}</td>
@@ -172,10 +165,9 @@ function renderTable(){
   });
 }
 
-/* ===== UPDATE STATUS ===== */
 function updateStatus(caseId, newStatus){
   if(!newStatus) return;
-  if(!confirm("Sahkan tukar status kes "+caseId+" kepada "+newStatus+"?")) return;
+  if(!confirm(`Sahkan tukar status kes ${caseId} kepada ${newStatus}?`)) return;
 
   fetch(API_POST_URL,{
     method:"POST",
