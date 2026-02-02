@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <title>Operanix | Dashboard Staf</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 body{
   font-family: Arial, sans-serif;
@@ -51,7 +50,7 @@ th{
   background:#f0f0f0;
 }
 .status-baru{color:#0066ff;font-weight:bold;}
-.status-proses{color:#ff9900;font-weight:bold;}
+.status-dalamproses{color:#ff9900;font-weight:bold;}
 .status-selesai{color:#00aa55;font-weight:bold;}
 .status-escalate{color:#e60000;font-weight:bold;}
 .small{
@@ -60,12 +59,15 @@ th{
 }
 </style>
 </head>
-
 <body>
 
 <script>
-/* ===== BASIC AUTH CHECK ===== */
-if(localStorage.getItem("operanix_staff_auth") !== "ok"){
+/* ===== BASIC AUTH CHECK (MVP: ONE PASSWORD) ===== */
+const auth = localStorage.getItem("operanix_auth");
+if(auth !== "ok"){
+  if(!localStorage.getItem("operanix_redirect")){
+    localStorage.setItem("operanix_redirect", window.location.href);
+  }
   window.location.href = "login.html";
 }
 </script>
@@ -106,8 +108,8 @@ if(localStorage.getItem("operanix_staff_auth") !== "ok"){
 </div>
 
 <script>
-const API_GET_URL = "https://script.google.com/macros/s/AKfycbynTscLgVADKT9aSRNtE23qZr9c2FoMJY_NSRuyUSJUa_wbVytF9l41xAXyAYNFXW1FpQ/exec";
-const API_POST_URL = API_GET_URL; // doPost sama URL
+const API_GET_URL = "https://script.google.com/macros/s/AKfycbzNoivsmUm18JtTC4S_f_arsl9zaH1IpwmxwTbxpDS8rb7txwvMQ_kR-nBFfpW8b57axw/exec";
+const API_POST_URL = API_GET_URL;
 
 let allCases = [];
 
@@ -126,7 +128,8 @@ function populateKategori(){
   const sel = document.getElementById("filterKategori");
   set.forEach(k=>{
     const o=document.createElement("option");
-    o.value=k;o.textContent=k;
+    o.value=k;
+    o.textContent=k;
     sel.appendChild(o);
   });
 }
@@ -149,12 +152,13 @@ function renderTable(){
     return true;
   }).forEach(c=>{
     const tr = document.createElement("tr");
+    const statusClass = "status-" + c.status_kes.replace(/\s/g,"");
 
     tr.innerHTML = `
       <td>${c.case_id}</td>
       <td class="small">${c.created_at}</td>
       <td>${c.kategori_aduan}</td>
-      <td class="status-${c.status_kes.replace(" ","")}">${c.status_kes}</td>
+      <td class="${statusClass}">${c.status_kes}</td>
       <td>
         <select onchange="updateStatus('${c.case_id}', this.value)">
           <option value="">-- Tukar --</option>
@@ -171,7 +175,6 @@ function renderTable(){
 /* ===== UPDATE STATUS ===== */
 function updateStatus(caseId, newStatus){
   if(!newStatus) return;
-
   if(!confirm("Sahkan tukar status kes "+caseId+" kepada "+newStatus+"?")) return;
 
   fetch(API_POST_URL,{
@@ -179,9 +182,9 @@ function updateStatus(caseId, newStatus){
     body:JSON.stringify({
       case_id: caseId,
       new_status: newStatus,
-      actor_name: localStorage.getItem("staff_name") || "staff",
-      actor_role: localStorage.getItem("staff_role") || "staff",
-      note: "Updated via dashboard"
+      actor_name: "dashboard_staff",
+      actor_role: "staff",
+      note: "Updated via staff dashboard"
     })
   })
   .then(r=>r.json())
