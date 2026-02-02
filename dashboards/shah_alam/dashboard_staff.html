@@ -249,30 +249,51 @@ function confirmUpdate(){
   })}).then(()=>location.reload());
 }
 
-/* ===== FINAL FIX: HISTORY ===== */
+/* ===== FINAL, DEFENSIVE HISTORY FIX ===== */
 function openHistory(caseId){
   const cid = String(caseId).trim();
-  historyContent.innerHTML="Loading...";
-  historyModal.style.display="block";
 
-  fetch(API+"?logs=1&case_id="+encodeURIComponent(cid))
-  .then(r=>r.json())
-  .then(data=>{
-    if(!Array.isArray(data)||!data.length){
-      historyContent.innerHTML="Tiada sejarah.";
-      return;
-    }
-    historyContent.innerHTML = data.map(l=>`
-      <div class="log-item">
-        <b>${formatMalaysiaDateTime(l.timestamp)}</b><br>
-        ${l.actor_name||"system"} (${l.actor_role||"-"})<br>
-        ${(l.from_status||"-")} → <b>${l.to_status||"-"}</b><br>
-        <i>${l.note||"-"}</i>
-      </div>
-    `).join("");
-  });
+  historyModal.style.display = "block";
+  historyContent.innerHTML = "Loading...";
+
+  fetch(API + "?logs=1&case_id=" + encodeURIComponent(cid))
+    .then(r => r.json())
+    .then(data => {
+
+      if (!Array.isArray(data)) {
+        historyContent.innerHTML = "Ralat data sejarah.";
+        return;
+      }
+
+      // 🔒 DEFENSIVE FILTER (INI KUNCI SEBENAR)
+      const filtered = data.filter(l => {
+        const logCase =
+          l.case_id ||
+          l.caseId ||
+          l.CASE_ID ||
+          "";
+        return String(logCase).trim() === cid;
+      });
+
+      if (!filtered.length) {
+        historyContent.innerHTML = "Tiada sejarah untuk kes ini.";
+        return;
+      }
+
+      historyContent.innerHTML = filtered.map(l => `
+        <div class="log-item">
+          <b>${formatMalaysiaDateTime(l.timestamp || l.created_at)}</b><br>
+          ${l.actor_name || "system"} (${l.actor_role || "-"})<br>
+          ${(l.from_status || "-")} → <b>${l.to_status || "-"}</b><br>
+          <i>${l.note || "-"}</i>
+        </div>
+      `).join("");
+    })
+    .catch(() => {
+      historyContent.innerHTML = "Gagal ambil sejarah.";
+    });
 }
-function closeHistory(){historyModal.style.display="none";}
+
 </script>
 
 </body>
