@@ -33,7 +33,6 @@ button{
 }
 button:hover{ background:#004ecc; }
 button.secondary{ background:#555; }
-
 table{
   width:100%;
   border-collapse:collapse;
@@ -45,14 +44,11 @@ th, td{
   text-align:left;
 }
 th{ background:#f0f0f0; }
-
 .status-baru{color:#0066ff;font-weight:bold;}
 .status-dalamproses{color:#ff9900;font-weight:bold;}
 .status-selesai{color:#00aa55;font-weight:bold;}
 .status-escalate{color:#e60000;font-weight:bold;}
-
 .small{ font-size:12px;color:#555; }
-
 .badge{
   display:inline-block;
   padding:2px 6px;
@@ -63,35 +59,12 @@ th{ background:#f0f0f0; }
 }
 .badge-today{ background:#e6f0ff; color:#0052cc; }
 .badge-yesterday{ background:#f0f0f0; color:#666; }
-
 .sla-ok{ color:#555; }
 .sla-warn{ color:#ff9900; font-weight:bold; }
 .sla-breach{ color:#e60000; font-weight:bold; }
-
-/* MODAL */
-.modal{
-  display:none;
-  position:fixed;
-  top:0;left:0;right:0;bottom:0;
-  background:rgba(0,0,0,0.5);
-  z-index:9999;
-}
-.modal-content{
-  background:#fff;
-  max-width:520px;
-  margin:8% auto;
-  padding:16px;
-  border-radius:10px;
-}
-.modal h3{ margin-top:0; }
-.log-item{
-  border-bottom:1px solid #eee;
-  padding:8px 0;
-  font-size:13px;
-}
-.log-item:last-child{ border-bottom:none; }
 </style>
 </head>
+
 <body>
 
 <script>
@@ -99,6 +72,10 @@ th{ background:#f0f0f0; }
 if(localStorage.getItem("operanix_auth") !== "ok"){
   location.replace("login.html");
 }
+
+/* ===== READ CASE_ID FROM URL ===== */
+const urlParams = new URLSearchParams(window.location.search);
+const PRESELECT_CASE_ID = urlParams.get("case_id");
 
 /* ===== MALAYSIA DATE TIME ===== */
 function formatMalaysiaDateTime(ts){
@@ -124,33 +101,38 @@ function dayBadge(ts){
   const myNow = new Date(now.toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
   const d = new Date(ts);
   const myDate = new Date(d.toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
-
   const diffDays = Math.floor((myNow - myDate) / (1000*60*60*24));
-
   if(diffDays === 0) return '<span class="badge badge-today">Hari Ini</span>';
   if(diffDays === 1) return '<span class="badge badge-yesterday">Semalam</span>';
   return "";
 }
 
-/* ===== SLA TIMER ===== */
+/* ===== SLA TIMER (HARI + JAM) ===== */
 function slaInfo(ts, status){
   if(status === "selesai") return "-";
+
   const now = new Date();
   const myNow = new Date(now.toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
   const d = new Date(ts);
   const myDate = new Date(d.toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
 
-  const hours = Math.floor((myNow - myDate) / (1000*60*60));
+  const diffMs = myNow - myDate;
+  const totalHours = Math.floor(diffMs / (1000*60*60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
 
-  if(hours > 48) return `<span class="sla-breach">${hours}j</span>`;
-  if(hours > 24) return `<span class="sla-warn">${hours}j</span>`;
-  return `<span class="sla-ok">${hours}j</span>`;
+  let label = "";
+  if(days > 0) label += `${days}h `;
+  label += `${hours}j`;
+
+  if(totalHours >= 48) return `<span class="sla-breach">${label}</span>`;
+  if(totalHours >= 24) return `<span class="sla-warn">${label}</span>`;
+  return `<span class="sla-ok">${label}</span>`;
 }
 </script>
 
 <h2>Dashboard Operasi Staf</h2>
 
-<!-- FILTER -->
 <div class="card">
   <input type="date" id="filterDate">
   <select id="filterKategori">
@@ -167,7 +149,6 @@ function slaInfo(ts, status){
   <button onclick="renderTable()">Tapis</button>
 </div>
 
-<!-- TABLE -->
 <div class="card">
 <table>
   <thead>
@@ -184,48 +165,17 @@ function slaInfo(ts, status){
 </table>
 </div>
 
-<!-- UPDATE MODAL -->
-<div class="modal" id="updateModal">
-  <div class="modal-content">
-    <h3>Kemaskini Status</h3>
-    <div><b id="updateCaseId"></b></div><br>
-    <select id="updateStatus">
-      <option value="">-- Pilih Status --</option>
-      <option value="dalam proses">Dalam Proses</option>
-      <option value="selesai">Selesai</option>
-      <option value="escalate">Escalate</option>
-    </select>
-    <br><br>
-    <textarea id="updateNote" rows="3" style="width:100%" placeholder="Catatan (optional)"></textarea>
-    <br><br>
-    <button onclick="confirmUpdate()">Simpan</button>
-    <button class="secondary" onclick="closeUpdate()">Batal</button>
-  </div>
-</div>
-
-<!-- HISTORY MODAL -->
-<div class="modal" id="historyModal">
-  <div class="modal-content">
-    <h3>Sejarah Kes</h3>
-    <div id="historyContent">Loading...</div>
-    <br>
-    <button class="secondary" onclick="closeHistory()">Tutup</button>
-  </div>
-</div>
-
 <script>
-const API_GET_URL = "https://script.google.com/macros/s/AKfycbxUxs2A36xRkdSf6n2ewU8FsT0Vcduax1k9a82tBOQz2KEd0bOahVdXxjFx4mO0hC6c4Q/exec";
-const API_POST_URL = API_GET_URL;
-
+const API_GET_URL = "https://script.google.com/macros/s/AKfycbzNoivsmUm18JtTC4S_f_arsl9zaH1IpwmxwTbxpDS8rb7txwvMQ_kR-nBFfpW8b57axw/exec";
 let allCases = [];
-let selectedCaseId = null;
 
 /* LOAD DATA */
 fetch(API_GET_URL)
 .then(r=>r.json())
 .then(data=>{
-  allCases=data;
+  allCases = data;
   populateKategori();
+  if(PRESELECT_CASE_ID) searchCase.value = PRESELECT_CASE_ID;
   renderTable();
 });
 
@@ -246,17 +196,17 @@ function renderTable(){
   const fDate=filterDate.value;
   const fKat=filterKategori.value;
   const fStat=filterStatus.value;
-  const sCase=searchCase.value.toLowerCase();
+  const sCase=searchCase.value.trim();
 
   allCases.filter(c=>{
     if(fDate && !String(c.created_at).startsWith(fDate)) return false;
     if(fKat && c.kategori_aduan!==fKat) return false;
     if(fStat && c.status_kes!==fStat) return false;
-    if(sCase && !c.case_id.toLowerCase().includes(sCase)) return false;
+    if(sCase && c.case_id !== sCase) return false;
     return true;
   }).forEach(c=>{
-    const tr=document.createElement("tr");
     const cls="status-"+c.status_kes.replace(/\s/g,"");
+    const tr=document.createElement("tr");
     tr.innerHTML=`
       <td>${c.case_id}</td>
       <td class="small">
@@ -267,75 +217,13 @@ function renderTable(){
       <td class="${cls}">${c.status_kes}</td>
       <td>${slaInfo(c.created_at, c.status_kes)}</td>
       <td>
-        <button onclick="openUpdate('${c.case_id}')">Update</button>
-        <button class="secondary" onclick="openHistory('${c.case_id}')">Sejarah</button>
+        <button>Update</button>
+        <button class="secondary">Sejarah</button>
       </td>
     `;
     tbody.appendChild(tr);
   });
 }
-
-/* UPDATE FLOW */
-function openUpdate(caseId){
-  selectedCaseId=caseId;
-  updateCaseId.textContent=caseId;
-  updateStatus.value="";
-  updateNote.value="";
-  updateModal.style.display="block";
-}
-function closeUpdate(){ updateModal.style.display="none"; }
-
-function confirmUpdate(){
-  const newStatus=updateStatus.value;
-  if(!newStatus){ alert("Pilih status"); return; }
-
-  fetch(API_POST_URL,{
-    method:"POST",
-    body:JSON.stringify({
-      case_id:selectedCaseId,
-      new_status:newStatus,
-      actor_name:"dashboard_staff",
-      actor_role:"staff",
-      note:updateNote.value
-    })
-  })
-  .then(r=>r.json())
-  .then(res=>{
-    if(res.success){
-      alert("Status dikemaskini");
-      location.reload();
-    }else{
-      alert("Ralat: "+res.error);
-    }
-  });
-}
-
-/* HISTORY FLOW */
-function openHistory(caseId){
-  historyModal.style.display="block";
-  historyContent.innerHTML="Loading...";
-  fetch(API_GET_URL+"?logs=1&case_id="+caseId)
-    .then(r=>r.json())
-    .then(data=>{
-      if(!data.length){
-        historyContent.innerHTML="Tiada rekod.";
-        return;
-      }
-      let html="";
-      data.forEach(l=>{
-        html+=`
-          <div class="log-item">
-            <b>${formatMalaysiaDateTime(l.timestamp)}</b><br>
-            ${l.actor_name} (${l.actor_role})<br>
-            ${l.from_status || "-"} → <b>${l.to_status}</b><br>
-            <i>${l.note || "-"}</i>
-          </div>
-        `;
-      });
-      historyContent.innerHTML=html;
-    });
-}
-function closeHistory(){ historyModal.style.display="none"; }
 </script>
 
 </body>
