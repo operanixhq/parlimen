@@ -132,7 +132,7 @@ function slaInfo(ts,status){
   const hrs = Math.floor((now-d)/(1000*60*60));
   const day = Math.floor(hrs/24);
   const h = hrs%24;
-  const label = `${day>0?day+"hari ":""}${h}jam`;
+  const label = `${day>0?day+" hari ":""}${h} jam`;
   if(hrs>=48) return `<span class="sla-breach">${label}</span>`;
   if(hrs>=24) return `<span class="sla-warn">${label}</span>`;
   return `<span class="sla-ok">${label}</span>`;
