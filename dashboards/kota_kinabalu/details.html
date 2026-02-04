@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Maklumat Aduan Lengkap</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  margin:0;
+  padding:18px;
+  background:#f4f6f8;
+}
+h2{
+  margin-top:0;
+  font-size:18px;
+}
+.card{
+  background:white;
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom:14px;
+  font-size:15px;
+  line-height:1.5;
+}
+.action-row{
+  margin-top:14px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.action-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:9px 16px;
+  background:#0066ff;
+  color:white;
+  border-radius:8px;
+  font-size:14px;
+  font-weight:bold;
+  border:none;
+  cursor:pointer;
+  text-decoration:none;
+}
+.action-btn.secondary{
+  background:#00aa55;
+}
+.back-link{
+  display:inline-block;
+  margin-top:10px;
+  font-size:14px;
+  font-weight:bold;
+  text-decoration:none;
+  color:#0066ff;
+}
+.small{
+  font-size:13px;
+  color:#555;
+}
+img.case-img{
+  max-width:100%;
+  border-radius:10px;
+  margin-top:12px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Maklumat Aduan Lengkap</h2>
+<div id="result">Loading...</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxCXl6sCKzUkkQUq51cXpaDFzuWvG3UcG9D3F9bVTROYVT-QJpq7ooBMz73d5tRnQCfmw/exec";
+const params = new URLSearchParams(window.location.search);
+const CASE_ID = params.get("case_id");
+
+/* ===== FORMAT TARIKH MALAYSIA ===== */
+function formatMY(ts){
+  if(!ts) return "-";
+  const d = new Date(ts);
+  const opt = {
+    timeZone: "Asia/Kuala_Lumpur",
+    day:"2-digit",
+    month:"2-digit",
+    year:"numeric",
+    hour:"2-digit",
+    minute:"2-digit",
+    hour12:true
+  };
+  const p = new Intl.DateTimeFormat("en-GB", opt).formatToParts(d);
+  const g = t => p.find(x=>x.type===t)?.value || "";
+  return `${g("day")}-${g("month")}-${g("year")} • ${g("hour")}:${g("minute")} ${g("dayPeriod").toUpperCase()}`;
+}
+
+/* ===== GO DASHBOARD STAFF ===== */
+function goUpdateKes(){
+  if(localStorage.getItem("operanix_auth")==="ok"){
+    location.href = `dashboard_staff.html?case_id=${encodeURIComponent(CASE_ID)}`;
+  }else{
+    localStorage.setItem(
+      "operanix_redirect",
+      `dashboard_staff.html?case_id=${encodeURIComponent(CASE_ID)}`
+    );
+    location.href = "login.html";
+  }
+}
+
+/* ===== LOAD DATA ===== */
+fetch(API_URL)
+.then(r=>r.json())
+.then(data=>{
+  const found = data.find(c => c.case_id === CASE_ID);
+  if(!found){
+    document.getElementById("result").innerHTML = "Kes tidak dijumpai";
+    return;
+  }
+
+  const wazeLink = (found.lat && found.lng)
+    ? `https://waze.com/ul?ll=${found.lat},${found.lng}&navigate=yes`
+    : null;
+
+  document.getElementById("result").innerHTML = `
+    <div class="card">
+      <b>Case ID:</b> ${found.case_id}<br>
+      <b>Tarikh:</b> ${formatMY(found.created_at)}<br><br>
+
+      <b>Nama Pengadu:</b> ${found.nama || "-"}<br>
+      <b>No Telefon:</b> ${found.no_telefon || "-"}<br><br>
+
+      <b>Kategori:</b> ${found.kategori_aduan}<br>
+      <b>Status Kes:</b> ${found.status_kes}<br>
+      <b>Urgency:</b> ${found.urgency || "-"}<br>
+      <b>Unit Dicadangkan (AI):</b> ${found.recommended_unit || "-"}<br><br>
+
+      <b>Ringkasan Aduan:</b>
+      <div style="margin-top:6px;white-space:pre-wrap;">
+        ${found.ringkasan_aduan}
+      </div>
+
+      ${found.image_url ? `
+        <img src="${found.image_url}" class="case-img">
+      ` : ""}
+
+      <div class="action-row">
+        ${wazeLink ? `
+          <a class="action-btn" href="${wazeLink}" target="_blank">
+            📍 Buka Waze
+          </a>
+        ` : ""}
+
+        <button class="action-btn secondary" onclick="goUpdateKes()">
+          🧑‍💼 Kemaskini Kes
+        </button>
+      </div>
+    </div>
+
+    <a class="back-link" href="index.html">← Kembali ke Peta</a>
+  `;
+})
+.catch(err=>{
+  console.error(err);
+  document.getElementById("result").innerHTML = "Ralat load data";
+});
+</script>
+
+</body>
+</html>
