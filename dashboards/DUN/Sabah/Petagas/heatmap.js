@@ -5,7 +5,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 }).addTo(map);
 
 // boundary
-fetch('../../N23_petagas.geojson')
+fetch('../../../N23_petagas.geojson')
 .then(r=>r.json())
 .then(data=>{
   L.geoJSON(data,{
