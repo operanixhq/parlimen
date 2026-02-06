@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Operanix Secure Access</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:#0e1628;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      color:white;
+    }
+    .login-box{
+      background:#111c33;
+      padding:30px 26px;
+      border-radius:10px;
+      box-shadow:0 0 20px rgba(0,0,0,0.6);
+      width:280px;
+      text-align:center;
+    }
+    h2{
+      margin-top:0;
+      margin-bottom:20px;
+      font-size:18px;
+      letter-spacing:1px;
+    }
+    input{
+      width:100%;
+      padding:10px;
+      margin-top:8px;
+      margin-bottom:14px;
+      border-radius:6px;
+      border:none;
+      font-size:14px;
+      box-sizing:border-box;
+    }
+    button{
+      width:100%;
+      padding:10px;
+      border:none;
+      border-radius:6px;
+      background:#0066ff;
+      color:white;
+      font-weight:bold;
+      font-size:14px;
+      cursor:pointer;
+      box-sizing:border-box;
+      margin-top:8px;
+    }
+    button.secondary{
+      background:#00aa55;
+    }
+    button:hover{
+      opacity:0.9;
+    }
+    .error{
+      color:#ff5555;
+      font-size:13px;
+      display:none;
+      margin-top:5px;
+    }
+    .footer{
+      margin-top:18px;
+      font-size:11px;
+      opacity:0.6;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-box" id="loginBox">
+  <h2>OPERANIX ACCESS</h2>
+  <input type="password" id="tokenInput" placeholder="Enter access token">
+  <button onclick="login()">ENTER</button>
+  <div class="error" id="errorMsg">Invalid token</div>
+  <div class="footer">Powered by Operanix</div>
+</div>
+
+<div class="login-box" id="choiceBox" style="display:none">
+  <h2>PILIH AKSES</h2>
+  <button onclick="goMap()">📍 Masuk Peta Aduan</button>
+  <button class="secondary" onclick="goDashboard()">🧑‍💼 Dashboard Staf</button>
+  <div class="footer">Operanix Control Panel</div>
+</div>
+
+<script>
+const VALID_HASH = "4da6ffc3fc9931bfe0d35945d6efbc892bd82d7a6723330d09d918a14605bbde";
+
+async function sha256(text){
+  const data = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2,"0"))
+    .join("");
+}
+
+async function login(){
+  const inputEl = document.getElementById("tokenInput");
+  const errorEl = document.getElementById("errorMsg");
+  const input = inputEl.value.trim();
+  errorEl.style.display="none";
+
+  if(!input) return;
+
+  const hashed = await sha256(input);
+
+  if(hashed !== VALID_HASH){
+    errorEl.style.display="block";
+    inputEl.value="";
+    return;
+  }
+
+  // === AUTH SUCCESS ===
+  localStorage.setItem("operanix_auth","ok");
+
+  // Ambil redirect sekali sahaja
+  const redirectUrl = localStorage.getItem("operanix_redirect");
+  localStorage.removeItem("operanix_redirect");
+
+  if(redirectUrl){
+    window.location.replace(redirectUrl);
+    return;
+  }
+
+  // Login manual → papar pilihan
+  document.getElementById("loginBox").style.display="none";
+  document.getElementById("choiceBox").style.display="block";
+}
+
+function goMap(){
+  window.location.replace("index.html");
+}
+
+function goDashboard(){
+  window.location.replace("dashboard_staff.html");
+}
+
+// Enter key submit
+document.getElementById("tokenInput")
+  .addEventListener("keypress", function(e){
+    if(e.key==="Enter") login();
+  });
+</script>
+
+</body>
+</html>
