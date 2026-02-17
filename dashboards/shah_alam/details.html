@@ -129,7 +129,8 @@ fetch(API_URL)
       <b>Tarikh:</b> ${formatMY(found.created_at)}<br><br>
 
       <b>Nama Pengadu:</b> ${found.nama || "-"}<br>
-      <b>No Telefon:</b> ${found.no_telefon || "-"}<br><br>
+      <b>No Telefon:</b> ${found.no_telefon || "-"}<br>
+      <b>Pengadu merupakan pengundi di Parlimen:</b> ${found.parlimen_code || "-"}<br><br>
 
       <b>Kategori:</b> ${found.kategori_aduan}<br>
       <b>Status Kes:</b> ${found.status_kes}<br>
