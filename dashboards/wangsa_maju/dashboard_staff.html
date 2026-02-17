@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Operanix | Dashboard Staf</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{
+  font-family: Arial, sans-serif;
+  margin:0;
+  padding:16px;
+  background:#f4f6f8;
+}
+h2{ margin:0 0 12px 0; }
+.card{
+  background:#fff;
+  padding:14px;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+  margin-bottom:14px;
+}
+input, select, button, textarea{
+  padding:6px;
+  font-size:14px;
+  margin-right:6px;
+}
+button{
+  background:#0066ff;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+button:hover{ background:#004ecc; }
+button.secondary{ background:#555; }
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+th, td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+  text-align:left;
+}
+th{ background:#f0f0f0; }
+.status-baru{color:#0066ff;font-weight:bold;}
+.status-dalamproses{color:#ff9900;font-weight:bold;}
+.status-selesai{color:#00aa55;font-weight:bold;}
+.status-escalate{color:#e60000;font-weight:bold;}
+.small{ font-size:12px;color:#555; }
+
+.badge{
+  display:inline-block;
+  padding:2px 6px;
+  border-radius:6px;
+  font-size:11px;
+  font-weight:bold;
+  margin-left:6px;
+}
+.badge-today{ background:#e6f0ff; color:#0052cc; }
+.badge-yesterday{ background:#f0f0f0; color:#666; }
+
+.sla-ok{ color:#555; }
+.sla-warn{ color:#ff9900; font-weight:bold; }
+.sla-breach{ color:#e60000; font-weight:bold; }
+
+.modal{
+  display:none;
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.5);
+  z-index:9999;
+}
+.modal-content{
+  background:#fff;
+  max-width:520px;
+  margin:8% auto;
+  padding:16px;
+  border-radius:10px;
+}
+.log-item{
+  border-bottom:1px solid #eee;
+  padding:8px 0;
+  font-size:13px;
+}
+</style>
+</head>
+
+<body>
+
+<script>
+/* ===== AUTH ===== */
+if(localStorage.getItem("operanix_auth") !== "ok"){
+  location.replace("login.html");
+}
+
+/* ===== URL PARAM ===== */
+const urlParams = new URLSearchParams(window.location.search);
+const PRESELECT_CASE_ID = (urlParams.get("case_id") || "").trim();
+
+/* ===== API ===== */
+const API =
+"https://script.google.com/macros/s/AKfycbxyeTKduJ5_TD292WLVSTCuN2iR3TBu4Uf10i4J82v2ySf7Qze_BOrWlpVi9DvP7KOS5w/exec";
+
+let allCases = [];
+let selectedCaseId = null;
+
+/* ===== TIME ===== */
+function formatMalaysiaDateTime(ts){
+  if(!ts) return "-";
+  return new Date(ts).toLocaleString("en-GB",{
+    timeZone:"Asia/Kuala_Lumpur",
+    day:"2-digit",month:"2-digit",year:"numeric",
+    hour:"2-digit",minute:"2-digit",hour12:true
+  }).replace(",", " •");
+}
+
+function dayBadge(ts){
+  const now = new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
+  const d = new Date(new Date(ts).toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
+  const diff = Math.floor((now-d)/(1000*60*60*24));
+  if(diff===0) return '<span class="badge badge-today">Hari Ini</span>';
+  if(diff===1) return '<span class="badge badge-yesterday">Semalam</span>';
+  return "";
+}
+
+function slaInfo(ts,status){
+  if(status==="selesai") return "-";
+  const now = new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
+  const d = new Date(new Date(ts).toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
+  const hrs = Math.floor((now-d)/(1000*60*60));
+  const day = Math.floor(hrs/24);
+  const h = hrs%24;
+  const label = `${day>0?day+"h ":""}${h}j`;
+  if(hrs>=48) return `<span class="sla-breach">${label}</span>`;
+  if(hrs>=24) return `<span class="sla-warn">${label}</span>`;
+  return `<span class="sla-ok">${label}</span>`;
+}
+</script>
+
+<h2>Dashboard Operasi Staf</h2>
+
+<div class="card">
+  <input type="date" id="filterDate">
+  <select id="filterKategori"><option value="">Semua Kategori</option></select>
+  <select id="filterStatus">
+    <option value="">Semua Status</option>
+    <option value="baru">Baru</option>
+    <option value="dalam proses">Dalam Proses</option>
+    <option value="selesai">Selesai</option>
+    <option value="escalate">Escalate</option>
+  </select>
+  <input type="text" id="searchCase" placeholder="Cari Case ID">
+  <button onclick="renderTable()">Tapis</button>
+</div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>Case ID</th><th>Tarikh</th><th>Kategori</th>
+<th>Status</th><th>SLA</th><th>Tindakan</th>
+</tr>
+</thead>
+<tbody id="caseTable"></tbody>
+</table>
+</div>
+
+<!-- UPDATE MODAL -->
+<div class="modal" id="updateModal">
+  <div class="modal-content">
+    <h3>Kemaskini Status</h3>
+    <b id="updateCaseId"></b><br><br>
+    <select id="updateStatus">
+      <option value="">-- Pilih Status --</option>
+      <option value="dalam proses">Dalam Proses</option>
+      <option value="selesai">Selesai</option>
+      <option value="escalate">Escalate</option>
+    </select><br><br>
+    <textarea id="updateNote" rows="3" style="width:100%" placeholder="Catatan"></textarea><br><br>
+    <button onclick="confirmUpdate()">Simpan</button>
+    <button class="secondary" onclick="closeUpdate()">Batal</button>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="modal" id="historyModal">
+  <div class="modal-content">
+    <h3>Sejarah Kes</h3>
+    <div id="historyContent">Loading...</div><br>
+    <button class="secondary" onclick="closeHistory()">Tutup</button>
+  </div>
+</div>
+
+<script>
+/* ===== LOAD ===== */
+fetch(API)
+.then(r=>r.json())
+.then(d=>{
+  allCases=d;
+
+  [...new Set(d.map(x=>x.kategori_aduan))].forEach(k=>{
+    filterKategori.innerHTML+=`<option value="${k}">${k}</option>`;
+  });
+
+  if(PRESELECT_CASE_ID){
+    searchCase.value = PRESELECT_CASE_ID;
+  }
+  renderTable();
+});
+
+function renderTable(){
+  caseTable.innerHTML="";
+  const sCase = searchCase.value.trim();
+
+  allCases.filter(c=>{
+    if(sCase && String(c.case_id).trim()!==sCase) return false;
+    if(filterKategori.value && c.kategori_aduan!==filterKategori.value) return false;
+    if(filterStatus.value && c.status_kes!==filterStatus.value) return false;
+    if(filterDate.value && !String(c.created_at).startsWith(filterDate.value)) return false;
+    return true;
+  }).forEach(c=>{
+    caseTable.innerHTML+=`
+    <tr>
+      <td>${c.case_id}</td>
+      <td class="small">${formatMalaysiaDateTime(c.created_at)} ${dayBadge(c.created_at)}</td>
+      <td>${c.kategori_aduan}</td>
+      <td class="status-${c.status_kes.replace(/\s/g,"")}">${c.status_kes}</td>
+      <td>${slaInfo(c.created_at,c.status_kes)}</td>
+      <td>
+        <button onclick="openUpdate('${c.case_id}')">Update</button>
+        <button class="secondary" onclick="openHistory('${c.case_id}')">Sejarah</button>
+      </td>
+    </tr>`;
+  });
+}
+
+/* ===== UPDATE ===== */
+function openUpdate(id){
+  selectedCaseId = id;
+  updateCaseId.textContent = id;
+  updateModal.style.display = "block";
+}
+function closeUpdate(){ updateModal.style.display="none"; }
+function confirmUpdate(){
+  fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      case_id:selectedCaseId,
+      new_status:updateStatus.value,
+      actor_name:"dashboard_staff",
+      actor_role:"staff",
+      note:updateNote.value
+    })
+  }).then(()=>location.reload());
+}
+
+/* ===== HISTORY (CLEAN & CORRECT) ===== */
+function openHistory(caseId){
+  const cid = String(caseId).trim();
+  historyModal.style.display="block";
+  historyContent.innerHTML="Loading...";
+
+  fetch(API+"?logs=1&case_id="+encodeURIComponent(cid))
+  .then(r=>r.json())
+  .then(data=>{
+    if(!Array.isArray(data)||!data.length){
+      historyContent.innerHTML="Tiada sejarah.";
+      return;
+    }
+    historyContent.innerHTML = data.map(l=>`
+      <div class="log-item">
+        <b>${formatMalaysiaDateTime(l.timestamp)}</b><br>
+        ${l.actor_name} (${l.actor_role})<br>
+        ${l.from_status} → <b>${l.to_status}</b><br>
+        <i>${l.note||"-"}</i>
+      </div>
+    `).join("");
+  });
+}
+function closeHistory(){ historyModal.style.display="none"; }
+</script>
+
+</body>
+</html>
