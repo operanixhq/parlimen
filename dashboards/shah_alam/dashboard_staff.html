@@ -195,8 +195,8 @@ function slaInfo(ts,status){
 fetch(API)
 .then(r=>r.json())
 .then(d=>{
-  // double safety: hanya KEB
-  allCases = d.filter(c => String(c.case_id).startsWith("KEB"));
+  // double safety: hanya ADUAN
+  allCases = d.filter(c => String(c.case_id).startsWith("ADUAN"));
 
   [...new Set(allCases.map(x=>x.kategori_aduan))].forEach(k=>{
     filterKategori.innerHTML+=`<option value="${k}">${k}</option>`;
