@@ -99,11 +99,11 @@ function formatMY(ts){
 /* ===== GO DASHBOARD STAFF ===== */
 function goUpdateKes(){
   if(localStorage.getItem("operanix_auth")==="ok"){
-    location.href = `dashboard_staff.html?case_id=${encodeURIComponent(CASE_ID)}`;
+    location.href = `kebajikan_dashboard_staff.html?case_id=${encodeURIComponent(CASE_ID)}`;
   }else{
     localStorage.setItem(
       "operanix_redirect",
-      `dashboard_staff.html?case_id=${encodeURIComponent(CASE_ID)}`
+      `kebajikan_dashboard_staff.html?case_id=${encodeURIComponent(CASE_ID)}`
     );
     location.href = "login.html";
   }
