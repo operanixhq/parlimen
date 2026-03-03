@@ -81,27 +81,51 @@ th{ background:#f0f0f0; }
   padding:8px 0;
   font-size:13px;
 }
+
+/* ===== LOADING OVERLAY ===== */
+#loadingOverlay{
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  background:rgba(255,255,255,0.85);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:99999;
+}
+.loader{
+  width:60px;
+  height:60px;
+  border:6px solid #e0e0e0;
+  border-top:6px solid #0066ff;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{
+  0%{ transform:rotate(0deg); }
+  100%{ transform:rotate(360deg); }
+}
 </style>
 </head>
 <body>
+
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay">
+  <div class="loader"></div>
+</div>
 
 <script>
 /* ===== AUTH ===== */
 if(localStorage.getItem("operanix_auth") !== "ok"){
   location.replace("login.html");
 }
-
 /* ===== URL PARAM ===== */
 const urlParams = new URLSearchParams(window.location.search);
 const PRESELECT_CASE_ID = (urlParams.get("case_id") || "").trim();
-
 /* ===== API (FILTER ADUAN + SHAH ALAM) ===== */
 const BASE_API = "https://script.google.com/macros/s/AKfycbwsHQjrm7DXKY4ovunQCU1hPm5Iu2IYr2juCPpi-FwTm4P089B46h8FSWN-GyVWaFspcw/exec";
 const API = `${BASE_API}?pusat_khidmat=shah%20alam&type=ADUAN`;
-
 let allCases = [];
 let selectedCaseId = null;
-
 /* ===== TIME ===== */
 function formatMalaysiaDateTime(ts){
   if(!ts) return "-";
@@ -111,7 +135,6 @@ function formatMalaysiaDateTime(ts){
     hour:"2-digit",minute:"2-digit",hour12:true
   }).replace(",", " •");
 }
-
 function dayBadge(ts){
   const now = new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
   const d = new Date(new Date(ts).toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
@@ -120,7 +143,6 @@ function dayBadge(ts){
   if(diff===1) return '<span class="badge badge-yesterday">Semalam</span>';
   return "";
 }
-
 function slaInfo(ts,status){
   if(status==="selesai") return "-";
   const now = new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Kuala_Lumpur"}));
@@ -190,12 +212,13 @@ function slaInfo(ts,status){
 </div>
 
 <script>
-
 /* ===== LOAD ===== */
 fetch(API)
 .then(r=>r.json())
 .then(d=>{
-  // double safety: hanya ADUAN
+
+  document.getElementById("loadingOverlay").style.display = "none";
+
   allCases = d.filter(c => String(c.case_id).startsWith("ADUAN"));
 
   [...new Set(allCases.map(x=>x.kategori_aduan))].forEach(k=>{
@@ -207,12 +230,15 @@ fetch(API)
   }
 
   renderTable();
+})
+.catch(err=>{
+  document.getElementById("loadingOverlay").style.display = "none";
+  console.error(err);
 });
 
 function renderTable(){
   caseTable.innerHTML="";
   const sCase = searchCase.value.trim();
-
   allCases.filter(c=>{
     if(sCase && String(c.case_id).trim()!==sCase) return false;
     if(filterKategori.value && c.kategori_aduan!==filterKategori.value) return false;
@@ -241,9 +267,7 @@ function openUpdate(id){
   updateCaseId.textContent = id;
   updateModal.style.display = "block";
 }
-
 function closeUpdate(){ updateModal.style.display="none"; }
-
 function confirmUpdate(){
   fetch(BASE_API,{
     method:"POST",
@@ -279,10 +303,9 @@ function openHistory(caseId){
     `).join("");
   });
 }
-
 function closeHistory(){ historyModal.style.display="none"; }
-
 </script>
 
 </body>
 </html>
+
