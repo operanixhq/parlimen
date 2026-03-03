@@ -49,7 +49,6 @@ th{ background:#f0f0f0; }
 .status-selesai{color:#00aa55;font-weight:bold;}
 .status-escalate{color:#e60000;font-weight:bold;}
 .small{ font-size:12px;color:#555; }
-
 .badge{
   display:inline-block;
   padding:2px 6px;
@@ -60,11 +59,9 @@ th{ background:#f0f0f0; }
 }
 .badge-today{ background:#e6f0ff; color:#0052cc; }
 .badge-yesterday{ background:#f0f0f0; color:#666; }
-
 .sla-ok{ color:#555; }
 .sla-warn{ color:#ff9900; font-weight:bold; }
 .sla-breach{ color:#e60000; font-weight:bold; }
-
 .modal{
   display:none;
   position:fixed;
@@ -86,7 +83,6 @@ th{ background:#f0f0f0; }
 }
 </style>
 </head>
-
 <body>
 
 <script>
@@ -99,9 +95,9 @@ if(localStorage.getItem("operanix_auth") !== "ok"){
 const urlParams = new URLSearchParams(window.location.search);
 const PRESELECT_CASE_ID = (urlParams.get("case_id") || "").trim();
 
-/* ===== API ===== */
-const API =
-"https://script.google.com/macros/s/AKfycbzVqgxnlWOIYNOTYEQq_PQoValftUxBZf4TRnCSKPWdlV0gkB1oVrgvmxioC0L7BC1gOg/exec";
+/* ===== API (FILTER ADUAN + SHAH ALAM) ===== */
+const BASE_API = "https://script.google.com/macros/s/AKfycbwsHQjrm7DXKY4ovunQCU1hPm5Iu2IYr2juCPpi-FwTm4P089B46h8FSWN-GyVWaFspcw/exec";
+const API = `${BASE_API}?pusat_khidmat=shah%20alam&type=ADUAN`;
 
 let allCases = [];
 let selectedCaseId = null;
@@ -139,7 +135,7 @@ function slaInfo(ts,status){
 }
 </script>
 
-<h2>Dashboard Operasi Staf</h2>
+<h2>Dashboard Operasi Staf </h2>
 
 <div class="card">
   <input type="date" id="filterDate">
@@ -194,19 +190,22 @@ function slaInfo(ts,status){
 </div>
 
 <script>
+
 /* ===== LOAD ===== */
 fetch(API)
 .then(r=>r.json())
 .then(d=>{
-  allCases=d;
+  // double safety: hanya KEB
+  allCases = d.filter(c => String(c.case_id).startsWith("KEB"));
 
-  [...new Set(d.map(x=>x.kategori_aduan))].forEach(k=>{
+  [...new Set(allCases.map(x=>x.kategori_aduan))].forEach(k=>{
     filterKategori.innerHTML+=`<option value="${k}">${k}</option>`;
   });
 
   if(PRESELECT_CASE_ID){
     searchCase.value = PRESELECT_CASE_ID;
   }
+
   renderTable();
 });
 
@@ -242,9 +241,11 @@ function openUpdate(id){
   updateCaseId.textContent = id;
   updateModal.style.display = "block";
 }
+
 function closeUpdate(){ updateModal.style.display="none"; }
+
 function confirmUpdate(){
-  fetch(API,{
+  fetch(BASE_API,{
     method:"POST",
     body:JSON.stringify({
       case_id:selectedCaseId,
@@ -256,13 +257,12 @@ function confirmUpdate(){
   }).then(()=>location.reload());
 }
 
-/* ===== HISTORY (CLEAN & CORRECT) ===== */
+/* ===== HISTORY ===== */
 function openHistory(caseId){
   const cid = String(caseId).trim();
   historyModal.style.display="block";
   historyContent.innerHTML="Loading...";
-
-  fetch(API+"?logs=1&case_id="+encodeURIComponent(cid))
+  fetch(BASE_API+"?logs=1&case_id="+encodeURIComponent(cid))
   .then(r=>r.json())
   .then(data=>{
     if(!Array.isArray(data)||!data.length){
@@ -279,7 +279,9 @@ function openHistory(caseId){
     `).join("");
   });
 }
+
 function closeHistory(){ historyModal.style.display="none"; }
+
 </script>
 
 </body>
