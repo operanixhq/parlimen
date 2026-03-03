@@ -135,7 +135,15 @@ toggleBtn.addEventListener("click",()=>{
 if(localStorage.getItem("operanix_auth")!=="ok"){  
   window.location.href="login.html"  
 }  
-const JSON_URL="https://script.google.com/macros/s/AKfycbyuYoC3056hLbtko5zOHqybeNivm3Yby8aLEHqbpMQSyFNCJ7QPVBtJp-lfGyrfLj7wUg/exec"  
+const BASE_URL = "https://script.google.com/macros/s/AKfycbwsHQjrm7DXKY4ovunQCU1hPm5Iu2IYr2juCPpi-FwTm4P089B46h8FSWN-GyVWaFspcw/exec"
+
+const params = new URLSearchParams(window.location.search)
+
+// default paksa shah alam & ADUAN
+const pusat = (params.get("pusat_khidmat") || "shah alam").toLowerCase()
+const type  = (params.get("type") || "ADUAN").toUpperCase()
+
+const JSON_URL = `${BASE_URL}?pusat_khidmat=${encodeURIComponent(pusat)}&type=${type}`
 const GEOJSON_URL="P108_shah_alam.geojson"  
 const map=L.map('map').setView([3.0738,101.5183],12)  
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map)  
