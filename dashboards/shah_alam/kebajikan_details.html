@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <title>Maklumat Permohonan Lengkap</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 body{
   font-family: Arial, sans-serif;
@@ -74,11 +73,21 @@ img.case-img{
 <div id="result">Loading...</div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzAdqI6W-WmpmIk30mAa40Ksee_DigHTH9y8_SMrqAUgsO38wttHd0vX6BRLFwC6L_cIQ/exec";
+
+/* ===============================
+   CONFIG
+=============================== */
+
+const BASE_URL = "https://script.google.com/macros/s/AKfycbwsHQjrm7DXKY4ovunQCU1hPm5Iu2IYr2juCPpi-FwTm4P089B46h8FSWN-GyVWaFspcw/exec";
+const JSON_URL = `${BASE_URL}?pusat_khidmat=shah%20alam&type=KEB`;
+
 const params = new URLSearchParams(window.location.search);
 const CASE_ID = params.get("case_id");
 
-/* ===== FORMAT TARIKH MALAYSIA ===== */
+/* ===============================
+   FORMAT TARIKH MALAYSIA
+=============================== */
+
 function formatMY(ts){
   if(!ts) return "-";
   const d = new Date(ts);
@@ -96,7 +105,10 @@ function formatMY(ts){
   return `${g("day")}-${g("month")}-${g("year")} • ${g("hour")}:${g("minute")} ${g("dayPeriod").toUpperCase()}`;
 }
 
-/* ===== GO DASHBOARD STAFF ===== */
+/* ===============================
+   GO DASHBOARD STAFF
+=============================== */
+
 function goUpdateKes(){
   if(localStorage.getItem("operanix_auth")==="ok"){
     location.href = `kebajikan_dashboard_staff.html?case_id=${encodeURIComponent(CASE_ID)}`;
@@ -109,13 +121,28 @@ function goUpdateKes(){
   }
 }
 
-/* ===== LOAD DATA ===== */
-fetch(API_URL)
+/* ===============================
+   LOAD DATA
+=============================== */
+
+if(!CASE_ID){
+  document.getElementById("result").innerHTML = "Tiada case_id diberikan.";
+}else{
+
+fetch(JSON_URL)
 .then(r=>r.json())
 .then(data=>{
+
   const found = data.find(c => c.case_id === CASE_ID);
+
   if(!found){
     document.getElementById("result").innerHTML = "Kes tidak dijumpai";
+    return;
+  }
+
+  // extra safety: hanya KEB dibenarkan
+  if(!found.case_id.startsWith("KEB")){
+    document.getElementById("result").innerHTML = "Kes tidak sah untuk modul kebajikan";
     return;
   }
 
@@ -127,11 +154,9 @@ fetch(API_URL)
     <div class="card">
       <b>Case ID:</b> ${found.case_id}<br>
       <b>Tarikh:</b> ${formatMY(found.created_at)}<br><br>
-
       <b>Nama Pengadu:</b> ${found.nama || "-"}<br>
       <b>No Telefon:</b> ${found.no_telefon || "-"}<br>
       <b>Pengadu merupakan pengundi di Parlimen </b> ${found.parlimen_code || "-"}<br><br>
-
       <b>Kategori:</b> ${found.kategori_aduan}<br>
       <b>Status Kes:</b> ${found.status_kes}<br>
       <b>Urgency:</b> ${found.urgency || "-"}<br>
@@ -139,7 +164,7 @@ fetch(API_URL)
 
       <b>Ringkasan Aduan:</b>
       <div style="margin-top:6px;white-space:pre-wrap;">
-        ${found.ringkasan_aduan}
+        ${found.ringkasan_aduan || "-"}
       </div>
 
       ${found.image_url ? `
@@ -159,13 +184,16 @@ fetch(API_URL)
       </div>
     </div>
 
-    <a class="back-link" href="index.html">← Kembali ke Peta</a>
+    <a class="back-link" href="kebajikan_index.html">← Kembali ke Peta</a>
   `;
 })
 .catch(err=>{
   console.error(err);
   document.getElementById("result").innerHTML = "Ralat load data";
 });
+
+}
+
 </script>
 
 </body>
