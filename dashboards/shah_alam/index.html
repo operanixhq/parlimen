@@ -142,19 +142,33 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).a
 let boundaryLayer,allCases=[],heatLayer  
 let markerLayer=L.layerGroup().addTo(map)  
 let selectedStart=null,selectedEnd=null  
-flatpickr("#dateRange",{  
-  mode:"range",  
-  dateFormat:"Y-m-d",  
-  onChange:function(selectedDates){  
-    if(selectedDates.length===2){  
-      selectedStart=selectedDates[0].toISOString().slice(0,10)  
-      selectedEnd=selectedDates[1].toISOString().slice(0,10)  
-    }else{  
-      selectedStart=null;selectedEnd=null  
-    }  
-    renderData()  
-  }  
-})  
+flatpickr("#dateRange",{
+  mode:"range",
+  dateFormat:"Y-m-d",
+  onChange:function(selectedDates){
+    if(selectedDates.length===2){
+
+      const start = selectedDates[0]
+      const end = selectedDates[1]
+
+      selectedStart =
+        start.getFullYear() + "-" +
+        String(start.getMonth()+1).padStart(2,"0") + "-" +
+        String(start.getDate()).padStart(2,"0")
+
+      selectedEnd =
+        end.getFullYear() + "-" +
+        String(end.getMonth()+1).padStart(2,"0") + "-" +
+        String(end.getDate()).padStart(2,"0")
+
+    }else{
+      selectedStart=null
+      selectedEnd=null
+    }
+    renderData()
+  }
+})
+
 async function loadBoundary(){  
   const res=await fetch(GEOJSON_URL)  
   const geo=await res.json()  
