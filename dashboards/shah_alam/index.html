@@ -1,6 +1,6 @@
 <!DOCTYPE html>  <html>  
 <head>  
-  <title>Operanix | Peta Aduan Shah Alam</title>  
+  <title>Operanix | Peta Shah Alam</title>  
   <meta charset="utf-8"/>  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">  
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>  
@@ -135,6 +135,8 @@ toggleBtn.addEventListener("click",()=>{
 if(localStorage.getItem("operanix_auth")!=="ok"){  
   window.location.href="login.html"  
 }  
+
+
 const BASE_URL = "https://script.google.com/macros/s/AKfycbwsHQjrm7DXKY4ovunQCU1hPm5Iu2IYr2juCPpi-FwTm4P089B46h8FSWN-GyVWaFspcw/exec"
 
 const params = new URLSearchParams(window.location.search)
@@ -144,6 +146,12 @@ const pusat = (params.get("pusat_khidmat") || "shah alam").toLowerCase()
 const type  = (params.get("type") || "ADUAN").toUpperCase()
 
 const JSON_URL = `${BASE_URL}?pusat_khidmat=${encodeURIComponent(pusat)}&type=${type}`
+
+/* ===============================
+   MAP INIT
+=============================== */
+
+  
 const GEOJSON_URL="P108_shah_alam.geojson"  
 const map=L.map('map').setView([3.0738,101.5183],12)  
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map)  
@@ -306,8 +314,8 @@ if(selectedEnd){
         </div>  
         <b>${c.kategori}</b><br>  
         ${c.ringkasan}<br>  
-        <a href="details.html?case_id=${encodeURIComponent(c.case_id)}" target="_blank">  
-          Lihat Maklumat Aduan Lengkap →  
+        <a href="kebajikan_details.html?case_id=${encodeURIComponent(c.case_id)}" target="_blank">  
+          Lihat Maklumat Permohonan Lengkap →  
         </a>  
       </div>  
     `)  
