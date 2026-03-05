@@ -122,7 +122,7 @@ if(localStorage.getItem("operanix_auth") !== "ok"){
 const urlParams = new URLSearchParams(window.location.search);
 const PRESELECT_CASE_ID = (urlParams.get("case_id") || "").trim();
 /* ===== API (FILTER KEBAJIKAN + SHAH ALAM) ===== */
-const BASE_API = "https://script.google.com/macros/s/AKfycbwsHQjrm7DXKY4ovunQCU1hPm5Iu2IYr2juCPpi-FwTm4P089B46h8FSWN-GyVWaFspcw/exec";
+const BASE_API = "https://script.google.com/macros/s/AKfycbzZ_-OFO9KJz4GfcvFY1jWMCAXRJuMOr5h-y46yqckxZdI4brFi92DcOzGtvSp0GE18UQ/exec";
 const API = `${BASE_API}?pusat_khidmat=shah%20alam&type=KEB`;
 let allCases = [];
 let selectedCaseId = null;
