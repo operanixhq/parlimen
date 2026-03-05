@@ -64,11 +64,27 @@ img.case-img{
   border-radius:10px;
   margin-top:12px;
 }
+
+/* ===== CADANGAN BANTUAN BLOCK ===== */
+
+.aid-box{
+  background:#f0f6ff;
+  border-left:4px solid #0066ff;
+  padding:12px;
+  border-radius:8px;
+  margin-top:10px;
+  margin-bottom:12px;
+}
+
+.aid-title{
+  font-weight:bold;
+  color:#004ecc;
+  margin-bottom:4px;
+}
+
 </style>
 </head>
-
 <body>
-
 <h2>Maklumat Permohonan Lengkap</h2>
 <div id="result">Loading...</div>
 
@@ -79,10 +95,13 @@ img.case-img{
 =============================== */
 
 const BASE_URL = "https://script.google.com/macros/s/AKfycbwsHQjrm7DXKY4ovunQCU1hPm5Iu2IYr2juCPpi-FwTm4P089B46h8FSWN-GyVWaFspcw/exec";
+
 const JSON_URL = `${BASE_URL}?pusat_khidmat=shah%20alam&type=KEB`;
 
 const params = new URLSearchParams(window.location.search);
+
 const CASE_ID = params.get("case_id");
+
 
 /* ===============================
    FORMAT TARIKH MALAYSIA
@@ -90,7 +109,9 @@ const CASE_ID = params.get("case_id");
 
 function formatMY(ts){
   if(!ts) return "-";
+
   const d = new Date(ts);
+
   const opt = {
     timeZone: "Asia/Kuala_Lumpur",
     day:"2-digit",
@@ -100,69 +121,108 @@ function formatMY(ts){
     minute:"2-digit",
     hour12:true
   };
+
   const p = new Intl.DateTimeFormat("en-GB", opt).formatToParts(d);
+
   const g = t => p.find(x=>x.type===t)?.value || "";
+
   return `${g("day")}-${g("month")}-${g("year")} • ${g("hour")}:${g("minute")} ${g("dayPeriod").toUpperCase()}`;
 }
+
 
 /* ===============================
    GO DASHBOARD STAFF
 =============================== */
 
 function goUpdateKes(){
+
   if(localStorage.getItem("operanix_auth")==="ok"){
+
     location.href = `kebajikan_dashboard_staff.html?case_id=${encodeURIComponent(CASE_ID)}`;
+
   }else{
+
     localStorage.setItem(
       "operanix_redirect",
       `kebajikan_dashboard_staff.html?case_id=${encodeURIComponent(CASE_ID)}`
     );
+
     location.href = "login.html";
+
   }
 }
+
 
 /* ===============================
    LOAD DATA
 =============================== */
 
 if(!CASE_ID){
+
   document.getElementById("result").innerHTML = "Tiada case_id diberikan.";
+
 }else{
 
 fetch(JSON_URL)
+
 .then(r=>r.json())
+
 .then(data=>{
 
   const found = data.find(c => c.case_id === CASE_ID);
 
   if(!found){
+
     document.getElementById("result").innerHTML = "Kes tidak dijumpai";
+
     return;
+
   }
 
-  // extra safety: hanya KEB dibenarkan
   if(!found.case_id.startsWith("KEB")){
+
     document.getElementById("result").innerHTML = "Kes tidak sah untuk modul kebajikan";
+
     return;
+
   }
 
   const wazeLink = (found.lat && found.lng)
+
     ? `https://waze.com/ul?ll=${found.lat},${found.lng}&navigate=yes`
+
     : null;
 
+
   document.getElementById("result").innerHTML = `
+
     <div class="card">
+
       <b>Case ID:</b> ${found.case_id}<br>
+
       <b>Tarikh:</b> ${formatMY(found.created_at)}<br><br>
+
       <b>Nama Pengadu:</b> ${found.nama || "-"}<br>
+
       <b>No Telefon:</b> ${found.no_telefon || "-"}<br>
+
       <b>Pengadu merupakan pengundi di Parlimen </b> ${found.parlimen_code || "-"}<br><br>
+
       <b>Kategori:</b> ${found.kategori_aduan}<br>
+
       <b>Status Kes:</b> ${found.status_kes}<br>
-      <b>Urgency:</b> ${found.urgency || "-"}<br>
-      <b>Unit Dicadangkan (AI):</b> ${found.recommended_unit || "-"}<br><br>
+
+      <div class="aid-box">
+        <div class="aid-title">Jenis Bantuan Dicadangkan</div>
+        ${found.suggested_aid_type || "-"}
+        <div style="margin-top:8px;">
+        <div class="aid-title">Justifikasi Cadangan</div>
+        ${found.justification || "-"}
+        </div>
+      </div>
 
       <b>Ringkasan Aduan:</b>
+
       <div style="margin-top:6px;white-space:pre-wrap;">
         ${found.ringkasan_aduan || "-"}
       </div>
@@ -172,6 +232,7 @@ fetch(JSON_URL)
       ` : ""}
 
       <div class="action-row">
+
         ${wazeLink ? `
           <a class="action-btn" href="${wazeLink}" target="_blank">
             📍 Buka Waze
@@ -181,20 +242,27 @@ fetch(JSON_URL)
         <button class="action-btn secondary" onclick="goUpdateKes()">
           🧑‍💼 Kemaskini Kes
         </button>
+
       </div>
+
     </div>
 
     <a class="back-link" href="kebajikan_index.html">← Kembali ke Peta</a>
+
   `;
+
 })
+
 .catch(err=>{
+
   console.error(err);
+
   document.getElementById("result").innerHTML = "Ralat load data";
+
 });
 
 }
 
 </script>
-
 </body>
 </html>
