@@ -14,7 +14,7 @@ fetch('../../N47_telupid.geojson')
 });
 
 // GOOGLE SCRIPT
-const jsonUrl = "https://script.google.com/macros/s/AKfycbwsHQjrm7DXKY4ovunQCU1hPm5Iu2IYr2juCPpi-FwTm4P089B46h8FSWN-GyVWaFspcw/exec?pusat_khidmat=telupid&type=ADU"
+const jsonUrl = "https://script.google.com/macros/s/AKfycbzZ_-OFO9KJz4GfcvFY1jWMCAXRJuMOr5h-y46yqckxZdI4brFi92DcOzGtvSp0GE18UQ/exec"
 
 fetch(jsonUrl)
 .then(r=>r.json())
