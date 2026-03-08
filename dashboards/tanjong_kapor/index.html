@@ -142,7 +142,7 @@ const BASE_URL = "https://script.google.com/macros/s/AKfycbzZ_-OFO9KJz4GfcvFY1jW
 const params = new URLSearchParams(window.location.search)
 
 // default paksa tanjong kapor & ADUAN
-const pusat = (params.get("pusat_khidmat") || "tanjong%20kapor").toLowerCase()
+const pusat = (params.get("pusat_khidmat") || "tanjong kapor").toLowerCase()
 const type  = (params.get("type") || "ADUAN").toUpperCase()
 
 const JSON_URL = `${BASE_URL}?pusat_khidmat=${encodeURIComponent(pusat)}&type=${type}`
