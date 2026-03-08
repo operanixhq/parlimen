@@ -274,8 +274,8 @@ function confirmUpdate(){
     body:JSON.stringify({
       case_id:selectedCaseId,
       new_status:updateStatus.value,
-      actor_name:"dashboard_staff",
-      actor_role:"staff",
+      actor_name:"Thaniman",
+      actor_role:"superadmin",
       note:updateNote.value
     })
   }).then(()=>location.reload());
