@@ -13,51 +13,50 @@ fetch('../../N04_tanjong_kapor.geojson')
   }).addTo(map);
 });
 
-// CSV
-const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS_IDKPPAIXxMbSV_DLpPvUwsPd4ljUCcoa6JfYwEo8UEwQEllOSKM8MCAdz3VxYsvkqZDTiPylsztM/pub?output=csv"
+// GOOGLE SCRIPT
+const jsonUrl = "https://script.google.com/macros/s/AKfycbzZ_-OFO9KJz4GfcvFY1jWMCAXRJuMOr5h-y46yqckxZdI4brFi92DcOzGtvSp0GE18UQ/exec"
 
-Papa.parse(csvUrl,{
-  download:true,
-  skipEmptyLines:true,
-  complete: function(results){
+fetch(jsonUrl)
+.then(r=>r.json())
+.then(results=>{
 
-    const rows = results.data.slice(1);
-    let heatPoints = [];
+  let heatPoints = [];
 
-    rows.forEach(cols => {
+  results.forEach(item => {
 
-      const case_id = cols[0];
-      const kategori = cols[3];
-      const ringkasan = cols[4];
-      const lat = parseFloat(cols[6]);
-      const lng = parseFloat(cols[7]);
+    const case_id = item.case_id;
+    const kategori = item.kategori_aduan;
+    const ringkasan = item.ringkasan_aduan;
+    const lat = parseFloat(item.lat);
+    const lng = parseFloat(item.lng);
 
-      if(!isNaN(lat) && !isNaN(lng)){
+    if(!isNaN(lat) && !isNaN(lng)){
 
-        heatPoints.push([lat,lng,1]);
+      heatPoints.push([lat,lng,1]);
 
-        const marker = L.circleMarker([lat,lng],{
-          radius:6,
-          color:'#ff3333',
-          fillOpacity:0.9
-        }).addTo(map);
+      const marker = L.circleMarker([lat,lng],{
+        radius:6,
+        color:'#ff3333',
+        fillOpacity:0.9
+      }).addTo(map);
 
-        marker.bindPopup(`
-          <b>${case_id}</b><br>
-          ${kategori}<br>
-          ${ringkasan}<br><br>
-          <a href="details.html?case_id=${case_id}" target="_blank">
-          Lihat detail kes
-          </a>
-        `);
-      }
-    });
+      marker.bindPopup(`
+        <b>${case_id}</b><br>
+        ${kategori}<br>
+        ${ringkasan}<br><br>
+        <a href="details.html?case_id=${case_id}" target="_blank">
+        Lihat detail kes
+        </a>
+      `);
+    }
 
-    L.heatLayer(heatPoints,{
-      radius:45,
-      blur:30,
-      maxZoom:17,
-      minOpacity:0.6
-    }).addTo(map);
-  }
+  });
+
+  L.heatLayer(heatPoints,{
+    radius:45,
+    blur:30,
+    maxZoom:17,
+    minOpacity:0.6
+  }).addTo(map);
+
 });
